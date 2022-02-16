@@ -103,6 +103,16 @@ def game(demand, prices, periods, alpha, theta):
             p1_priser.append(prices[my_p])
             print('Spiller 2 tur: p:', prices[my_p], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
 
+'''def rep_games(): 
+    i=0
+    while i < 500000:
+        game(demand, x, 1000, 0.3, 0.01372)
+    
+    if 
+        i+1'''
+    
+    
+    
 game(demand, x, 1000, 0.3, 0.01372)
 print(len(p_priser))
 print(len(p1_priser))

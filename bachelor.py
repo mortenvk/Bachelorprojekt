@@ -10,7 +10,10 @@ def demand(p1, p2):
         d = 0
     return d
 
+def johanne() : 
+    print('ændring')
 
+johanne
 x = [0.2, 0.5, 1.0]
 
 

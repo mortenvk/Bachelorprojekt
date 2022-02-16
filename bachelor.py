@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import matplotlib
+from matplotlib import pyplot as plt
 
 def demand(p1, p2):
     if p1 < p2:
@@ -10,7 +12,7 @@ def demand(p1, p2):
         d = 0
     return d
 
-x = [0.1, 0.25, 0.35, 0.5]
+x = [0, 1/6, 2/6, 3/6, 4/6, 5/6, 1]
 
 
 def player1(prices): 
@@ -71,7 +73,8 @@ def update(Q, prev, alpha, delta, prices, indic):
         Q_table2[prev[1,0], prev[0,0]] = (1-alpha) * pe + alpha * ne
         
         
-
+p_priser =[]
+p1_priser = []
 def game(demand, prices, periods, alpha, theta):
     prev_p = np.zeros((2,2), dtype=int)
     for i in range(1):
@@ -79,14 +82,17 @@ def game(demand, prices, periods, alpha, theta):
             prev_p[i,j] = np.random.choice(len(prices))
             print('prev_p', prev_p)
     t = 3
-    for t in range(t, periods):
+ 
+    for t in range(t, periods+1):
         epsilon = (1-theta)**t
+        
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, 0.95, prices,1)
             my_p = player3(prices, Q_table, epsilon, prev_p)
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = my_p
             prev_p[1,0] = prev_p[1,1]
+            p_priser.append(prices[my_p])
             print('Spiller 1 tur: p:', prices[my_p],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
         else: 
             update(Q_table2, prev_p, alpha, 0.95, prices, 0)
@@ -94,10 +100,23 @@ def game(demand, prices, periods, alpha, theta):
             prev_p[1,0] = prev_p[1,1]
             prev_p[1,1] = my_p
             prev_p[0,0] = prev_p[0,1]
+            p1_priser.append(prices[my_p])
             print('Spiller 2 tur: p:', prices[my_p], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
 
-game(demand, x, 1000, 0.3, 0.003)
+game(demand, x, 1000, 0.3, 0.01372)
+print(len(p_priser))
+print(len(p1_priser))
 
+arr = np.array(p_priser)
+arr1 = np.array(p1_priser)
+
+t_arr = np.arange(499)
+
+plt.plot(t_arr,arr,label='Player 1')
+plt.plot(t_arr,arr1, label='Player 2')
+plt.xlabel("Time t")
+plt.ylabel("Price")
+plt.legend()
+plt.show()
 
 test = np.array([[1,2,3], [3,4,5], [4,5,6]])
-print(np.argmax(test[:,2]))

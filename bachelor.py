@@ -72,9 +72,13 @@ def update(Q, prev, alpha, delta, prices, indic):
         ne = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q_table2[np.argmax(Q_table2[:,prev[0,1]]),prev[0,1]]
         Q_table2[prev[1,0], prev[0,0]] = (1-alpha) * pe + alpha * ne
         
-        
+def profit(pris1, pris2):
+    return pris1*demand(pris1,pris2)
+
+
 p_priser =[]
 p1_priser = []
+profitability = 0 
 def game(demand, prices, periods, alpha, theta):
     prev_p = np.zeros((2,2), dtype=int)
     for i in range(1):
@@ -90,19 +94,23 @@ def game(demand, prices, periods, alpha, theta):
             update(Q_table, prev_p, alpha, 0.95, prices,1)
             my_p = player3(prices, Q_table, epsilon, prev_p)
             prev_p[0,0] = prev_p[0,1]
-            prev_p[0,1] = my_p
+            prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
-            p_priser.append(prices[my_p])
-            print('Spiller 1 tur: p:', prices[my_p],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            p_priser.append(prices[p_i])
+            print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            profitability += profit(prices[p_i],prices[prev_p[1,1]] )
+            
         else: 
             update(Q_table2, prev_p, alpha, 0.95, prices, 0)
             my_p = player4(prices, Q_table2, epsilon, prev_p)
             prev_p[1,0] = prev_p[1,1]
-            prev_p[1,1] = my_p
+            prev_p[1,1] = p_j
             prev_p[0,0] = prev_p[0,1]
-            p1_priser.append(prices[my_p])
-            print('Spiller 2 tur: p:', prices[my_p], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
-
+            p1_priser.append(prices[p_j])
+            print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
+            profitability += profit(prices[prev_p[0,1]],prices[p_j] )
+            
+            
 '''def rep_games(): 
     i=0
     while i < 500000:
@@ -111,9 +119,10 @@ def game(demand, prices, periods, alpha, theta):
     if 
         i+1'''
     
-    
+
     
 game(demand, x, 1000, 0.3, 0.01372)
+print('Profitability:', (1/1000)*profitability)
 print(len(p_priser))
 print(len(p1_priser))
 

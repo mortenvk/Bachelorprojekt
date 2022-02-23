@@ -39,7 +39,7 @@ Q_table2 = np.zeros((a, a))
 def player3(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p3 = np.random.choice(len(prices))
-        print('now its random', epsilon)
+        #print('now its random', epsilon)
     else:
         #p3, pyt = np.unravel_index(np.argmax(Q),Q.shape)
         p3 = np.argmax(Q_table[:,prev[1,1]])
@@ -48,7 +48,7 @@ def player3(prices, Q, epsilon, prev):
 def player4(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = np.random.choice(len(prices))
-        print('now its random', epsilon)
+        #print('now its random', epsilon)
     else:
         p4 = np.argmax(Q_table2[:,prev[0,1]])
     return p4
@@ -78,13 +78,14 @@ def profit(pris1, pris2):
 
 p_priser =[]
 p1_priser = []
-profitability = 0 
+
 def game(demand, prices, periods, alpha, theta):
+    profitability = 0.0 
     prev_p = np.zeros((2,2), dtype=int)
     for i in range(1):
         for j in range(1):
             prev_p[i,j] = np.random.choice(len(prices))
-            print('prev_p', prev_p)
+            #print('prev_p', prev_p)
     t = 3
  
     for t in range(t, periods+1):
@@ -92,40 +93,45 @@ def game(demand, prices, periods, alpha, theta):
         
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, 0.95, prices,1)
-            my_p = player3(prices, Q_table, epsilon, prev_p)
+            p_i = player3(prices, Q_table, epsilon, prev_p)
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
             p_priser.append(prices[p_i])
-            print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
-            profitability += profit(prices[p_i],prices[prev_p[1,1]] )
+            #print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            profitability += profit(prices[p_i],prices[prev_p[1,1]] ) 
             
         else: 
             update(Q_table2, prev_p, alpha, 0.95, prices, 0)
-            my_p = player4(prices, Q_table2, epsilon, prev_p)
+            p_j = player4(prices, Q_table2, epsilon, prev_p)
             prev_p[1,0] = prev_p[1,1]
             prev_p[1,1] = p_j
             prev_p[0,0] = prev_p[0,1]
             p1_priser.append(prices[p_j])
-            print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
+            #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             profitability += profit(prices[prev_p[0,1]],prices[p_j] )
+    return profitability
             
-            
-'''def rep_games(): 
+pro_arr=[]            
+def rep_games(): 
     i=0
     while i < 500000:
-        game(demand, x, 1000, 0.3, 0.01372)
-    
-    if 
-        i+1'''
+        print('urrent i:', i)
+        u = game(demand, x, 1000, 0.3, 0.01372)
+        pro_arr.append(u)
+        i+=1
     
 
     
-game(demand, x, 1000, 0.3, 0.01372)
-print('Profitability:', (1/1000)*profitability)
+
+    
+pro = game(demand, x, 1000, 0.3, 0.01372)
+print('Profitability:', (1/1000)*pro)
+rep_games()
 print(len(p_priser))
 print(len(p1_priser))
 
+'''''
 arr = np.array(p_priser)
 arr1 = np.array(p1_priser)
 
@@ -138,4 +144,11 @@ plt.ylabel("Price")
 plt.legend()
 plt.show()
 
-test = np.array([[1,2,3], [3,4,5], [4,5,6]])
+test = np.array([[1,2,3], [3,4,5], [4,5,6]])'''
+
+t2_arr= np.arange(500000)
+plt.plot(pro_arr, t2_arr, label='Avg. profitability')
+plt.xlabel("Time t")
+plt.ylabel("Profitability")
+plt.legend()
+plt.show()

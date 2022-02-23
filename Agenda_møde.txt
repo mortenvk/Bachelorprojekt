@@ -1,13 +1,15 @@
-Agenda: 
+    Agenda: 
 
-1. Numba - det virker ikke? Svært at gennemskue errors 
+    1. Klein: 
+    Optimality? Virker computationally tungt, er det nødvendigt? (se s. 546-547 i Klein(2021))
+    Convergence: bedste måde at måle det på. 
 
-2. Klein: 
-Optimality? Virker computationally tungt, er det nødvendigt? (se s. 546-547 i Klein(2021))
-Convergence: bedste måde at måle det på. 
+    2. Numba - det virker ikke? Svært at gennemskue errors 
 
-3. Indholdsfortegnelse - god dårlig? notes? 
+    3. Hjælp til classes? - eventuelt gøre kode mere lækker/genbrugelig
 
-4. Hjælp til classes - gøre kode mere lækker/genbrugelig
+    4. Indholdsfortegnelse - god dårlig? notes? 
 
-5. Github 
+    5. Efter Klein? Calvanos metoder svære at gennemskue, fortran :(
+
+    6. Github'en kører, du er inviteret

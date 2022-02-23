@@ -7,25 +7,69 @@ from matplotlib import pyplot as plt
 
 
 
-
-class game :  
+'''
+class Game :  
     def __init__(self, p1, p2) -> None:
         pass
 
-    def demand(self):
+    def klein_demand(self):
         if self.p1 < self.p2:
             d = 1 - self.p1
         elif self.p1 == self.p2:
-            d = 0.5*(1-self.p1)
+            d = 0.5 * (1 - self.p1)
         else:
             d = 0
         return d
+    
+    def game(prices, periods, alpha, theta):
+    a = len(prices)
+    Q_table = np.zeros((a, a))
+    Q_table2 = np.zeros((a, a))
+    profitability = 0.0
+    print('CHECK', int(periods/2)-1)
+    p_ipriser =np.zeros(int(periods/2)-1)
+    p_jpriser =np.zeros(int(periods/2)-1)
+    prev_p = np.zeros((2,2), dtype=int)
+    for i in range(1):
+        for j in range(1):
+            prev_p[i,j] = np.random.choice(len(prices))
+            #print('prev_p', prev_p)
+    t = 3
+    i_counter = 0
+    j_counter = 0
+    for t in range(t, periods+1):
+        epsilon = (1-theta)**t
+        
+        if t % 2 != 0: 
+            update(Q_table, prev_p, alpha, 0.95, prices,1)
+            p_i = player3(prices, Q_table, epsilon, prev_p)
+            prev_p[0,0] = prev_p[0,1]
+            prev_p[0,1] = p_i
+            prev_p[1,0] = prev_p[1,1]
+            p_ipriser[i_counter] = (prices[p_i])
+            i_counter += 1
+            print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            profitability += profit(prices[p_i],prices[prev_p[1,1]] ) 
+            
+        else: 
+            update(Q_table2, prev_p, alpha, 0.95, prices, 0)
+            p_j = player4(prices, Q_table2, epsilon, prev_p)
+            prev_p[1,0] = prev_p[1,1]
+            prev_p[1,1] = p_j
+            prev_p[0,0] = prev_p[0,1]
+            p_jpriser[j_counter] = (prices[p_j])
+            j_counter += 1
+            print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
+            profitability += profit(prices[prev_p[0,1]],prices[p_j] )
+    return (1/periods)*profitability, p_ipriser, p_jpriser
+'''
+
 
 def demand(p1,p2):
         if p1 < p2:
             d = 1 - p1
         elif p1 == p2:
-            d = 0.5*(1-p1)
+            d = 0.5 * (1 - p1)
         else:
             d = 0
         return d
@@ -70,7 +114,6 @@ def player4(prices, Q, epsilon, prev):
     
 #@numba.jit(nopython=True, debug=True)
 def update(Q, prev, alpha, delta, prices, indic):
-    this = game
     if indic == 1: 
         p1 = prices[prev[0,0]]
         p2 = prices[prev[1,0]]
@@ -90,12 +133,14 @@ def update(Q, prev, alpha, delta, prices, indic):
 def profit(pris1, pris2):
     return pris1*demand(pris1,pris2)
 
+
 #@numba.jit(nopython=True)
-def game(demand, prices, periods, alpha, theta):
+def game(prices, periods, alpha, theta):
     a = len(prices)
     Q_table = np.zeros((a, a))
     Q_table2 = np.zeros((a, a))
     profitability = 0.0
+    optimality = 0.0
     print('CHECK', int(periods/2)-1)
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
@@ -131,7 +176,7 @@ def game(demand, prices, periods, alpha, theta):
             j_counter += 1
             print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             profitability += profit(prices[prev_p[0,1]],prices[p_j] )
-    return profitability, p_ipriser, p_jpriser
+    return (1/periods)*profitability, p_ipriser, p_jpriser
             
 #@numba.jit(nopython=True)     
 '''def rep_games(reps): 
@@ -139,7 +184,7 @@ def game(demand, prices, periods, alpha, theta):
     pro_arr=np.zeros(reps)   
     while i < reps:
         print('current i:', i)
-        pro, p1, p2 = game(demand, x, 1000, 0.3, 0.01372)
+        pro, p1, p2 = game( x, 1000, 0.3, 0.01372)
         u = (1/reps)*pro
         pro_arr[i] = u
         i+=1
@@ -148,14 +193,11 @@ def game(demand, prices, periods, alpha, theta):
 
     
 
-#pro = game(demand, x, 1000, 0.3, 0.01372)
+#pro = game( x, 1000, 0.3, 0.01372)
 #print('Profitability:', (1/1000)*pro)
 #pro_arr, i, u = rep_games(1000)
 
-
-
-
-pro, arr, arr1 = game(demand, x, 1000, 0.3, 0.01372)
+pro, arr, arr1 = game( x, 1000, 0.3, 0.01372)
 t_arr = np.arange(499)
 
 plt.plot(t_arr,arr,label='Player 1')

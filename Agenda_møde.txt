@@ -1,0 +1,13 @@
+Agenda: 
+
+1. Numba - det virker ikke? Svært at gennemskue errors 
+
+2. Klein: 
+Optimality? Virker computationally tungt, er det nødvendigt? (se s. 546-547 i Klein(2021))
+Convergence: bedste måde at måle det på. 
+
+3. Indholdsfortegnelse - god dårlig? notes? 
+
+4. Hjælp til classes - gøre kode mere lækker/genbrugelig
+
+5. Github 

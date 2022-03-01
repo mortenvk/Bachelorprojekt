@@ -1,0 +1,30 @@
+Question regarding the graphs: 
+Klein(2021): "To assess the average and distribution of performance, I simulate 1000 runs."
+Do the algorithms actually learn on 500.000 reps? 
+Or 1000 reps repeated 500.000 times? The way it "rises" through the periods indicate a connection 
+between runs. 
+
+Klein: 
+Collusive behaviour is found in a sequentuel bertrand economic environment. 
+No communication is needed. No information regarding its oponnent is necessary either.
+
+Baseline: 
+Measures profitability, optimality, and share with Nash 
+Avg. profitability is closer to join profit maximizing compared to the competetive benchmark
+Avg. optimality close to 1, meaning no Nash. 
+Avg. Nash share tops at 60%, and when not Nash, assymetric price cycles are found. 
+Reward vs Punishments. Collusive behaviour is often rewarded. Forcing a deviation proves this. 
+Algorithms undercut eachother at first, and then switches to the collusive cycles. 
+
+Other tests: 
+Tweaks k - pricing interval. 
+Larger steps, more collusion 
+
+Tweaks alpha - stepsize, importance of past experience. 
+Sweet spot lies at 0.1, 0.2, 0.3.
+
+Tweaks delta - Discount factor
+Sweet spot is close to 1, often 0.95. Too close to 1, Q-learning fails. Too low - they cooperate
+on a Nash level. 
+
+

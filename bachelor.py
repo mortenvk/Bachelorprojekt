@@ -64,7 +64,7 @@ class Game :
     return (1/periods)*profitability, p_ipriser, p_jpriser
 '''
 
-
+#@jit
 def demand(p1,p2):
         if p1 < p2:
             d = 1 - p1
@@ -90,7 +90,7 @@ def player2(prices):
 #print(res)
 
 
-#@numba.jit(nopython=True)
+#@jit
 def player3(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p3 = np.random.choice(len(prices))
@@ -100,7 +100,8 @@ def player3(prices, Q, epsilon, prev):
         p3 = np.argmax(Q[:,prev[1,1]])
     return p3
 
-#@numba.jit(nopython=True)
+
+#@jit
 def player4(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = np.random.choice(len(prices))
@@ -112,7 +113,7 @@ def player4(prices, Q, epsilon, prev):
 
 
     
-#@numba.jit(nopython=True, debug=True)
+#@jit
 def update(Q, prev, alpha, delta, prices, indic):
     if indic == 1: 
         p1 = prices[prev[0,0]]
@@ -129,12 +130,19 @@ def update(Q, prev, alpha, delta, prices, indic):
         ne = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[0,1]]),prev[0,1]]
         Q[prev[1,0], prev[0,0]] = (1-alpha) * pe + alpha * ne
 
-#@numba.jit(nopython=True)     
+#@jit    
 def profit(pris1, pris2):
     return pris1*demand(pris1,pris2)
 
 
-#@numba.jit(nopython=True)
+
+prev_p = np.zeros((2,2), dtype=int)
+for i in range(1):
+        for j in range(1):
+            prev_p[i,j] = np.random.choice(len(x))
+
+
+#@jit
 def game(prices, periods, alpha, theta):
     a = len(prices)
     Q_table = np.zeros((a, a))
@@ -144,11 +152,6 @@ def game(prices, periods, alpha, theta):
     print('CHECK', int(periods/2)-1)
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
-    prev_p = np.zeros((2,2), dtype=int)
-    for i in range(1):
-        for j in range(1):
-            prev_p[i,j] = np.random.choice(len(prices))
-            #print('prev_p', prev_p)
     t = 3
     i_counter = 0
     j_counter = 0

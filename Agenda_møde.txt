@@ -13,3 +13,10 @@
     5. Efter Klein? Calvanos metoder svære at gennemskue, fortran :(
 
     6. Github'en kører, du er inviteret
+
+
+    Evt: 
+    Reward, profit. Kan både være under theory, men jo også reinforcement learning?
+    Machine learning introduktion?
+    Barsel? Påvirker det os? 
+

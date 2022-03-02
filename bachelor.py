@@ -136,10 +136,7 @@ def profit(pris1, pris2):
 
 
 
-prev_p = np.zeros((2,2), dtype=int)
-for i in range(1):
-        for j in range(1):
-            prev_p[i,j] = np.random.choice(len(x))
+
 
 
 #@jit
@@ -152,6 +149,10 @@ def game(prices, periods, alpha, theta):
     print('CHECK', int(periods/2)-1)
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
+    prev_p = np.zeros((2,2), dtype=int)
+    for i in range(1):
+        for j in range(1):
+            prev_p[i,j] = np.random.choice(len(prices))
     t = 3
     i_counter = 0
     j_counter = 0

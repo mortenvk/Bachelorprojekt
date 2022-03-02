@@ -180,7 +180,7 @@ def game(prices, periods, alpha, theta):
             j_counter += 1
             print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             profitability += profit(prices[prev_p[0,1]],prices[p_j] )
-    return (1/periods)*profitability, p_ipriser, p_jpriser
+    return (1/periods)*profitability, p_ipriser, p_jpriser, Q_table
             
 #@numba.jit(nopython=True)     
 '''def rep_games(reps): 
@@ -195,14 +195,32 @@ def game(prices, periods, alpha, theta):
     return pro_arr, p1, p2'''
 
 
+def optimality(Q, lastp, prev1, prices, alpha, delta):
+    tol = 1
+    while tol > 0.00001: 
+            oldQ = Q[prev1, lastp]
+            p1 = prices[prev1]
+            p2 = prices[lastp]
+            pe = Q[prev1, lastp]
+            ne = p1*demand(p1,p2) + delta* p1*demand(p1,p2) + delta**2 * Q[np.argmax(Q[:,lastp]),lastp]
+            Q[prev1, lastp] = (1-alpha) * pe + alpha * ne
+            tol = Q[prev1, lastp] - oldQ
+    maxp = Q[np.argmax(Q[:,lastp]), lastp]
+    opt = Q[prev1, lastp]/maxp
+    return opt
+            
+
+
     
 
 #pro = game( x, 1000, 0.3, 0.01372)
 #print('Profitability:', (1/1000)*pro)
 #pro_arr, i, u = rep_games(1000)
 
-pro, arr, arr1 = game( x, 1000, 0.3, 0.01372)
+pro, arr, arr1, Q_t = game( x, 1000, 0.3, 0.01372)
 t_arr = np.arange(499)
+optimality()
+print('profitability:', pro)
 
 plt.plot(t_arr,arr,label='Player 1')
 plt.plot(t_arr,arr1, label='Player 2')

@@ -119,16 +119,19 @@ def update(Q, prev, alpha, delta, prices, indic):
         p1 = prices[prev[0,0]]
         p2 = prices[prev[1,0]]
         p22 = prices[prev[1,1]]
-        pe = Q[prev[0,0],prev[1,0]]
-        ne = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[1,1]]),prev[1,1]]
-        Q[prev[0,0], prev[1,0]] = (1-alpha) * pe + alpha * ne
+        pe1 = Q[prev[0,0],prev[1,0]]
+        ne1 = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[1,1]]),prev[1,1]]
+        Q[prev[0,0], prev[1,0]] = (1-alpha) * pe1 + alpha * ne1
+        #print('GAME player 1 ne and pe', ne1, pe1)
     else: 
         p1 = prices[prev[1,0]]
         p2 = prices[prev[0,0]]
         p22 = prices[prev[0,1]]
-        pe = Q[prev[1,0],prev[0,0]]
-        ne = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[0,1]]),prev[0,1]]
-        Q[prev[1,0], prev[0,0]] = (1-alpha) * pe + alpha * ne
+        pe2 = Q[prev[1,0],prev[0,0]]
+        ne2 = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[0,1]]),prev[0,1]]
+        Q[prev[1,0], prev[0,0]] = (1-alpha) * pe2 + alpha * ne2
+    
+
 
 #@jit    
 def profit(pris1, pris2):
@@ -136,7 +139,32 @@ def profit(pris1, pris2):
 
 
 
-
+def opti(Q, lastp, prev1, prices, alpha, delta):
+    tol = 1
+    print('p2last price', lastp)
+    print('old q_table:\n', Q)
+    firstq = Q[prev1, lastp]
+    while tol > 0.00001:
+            print('1 iteration', tol)
+            print('prev1:', prev1)
+            p1 = prices[prev1]
+            p2 = prices[lastp]
+            pe = Q[prev1, lastp]
+            oldQ = Q[prev1, lastp]
+            ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q[np.argmax(Q[:,lastp]),lastp]
+            print('demand p1:', p1*demand(p1, p2))
+            print('pe:', pe)
+            print('ne:', ne)
+            Q[prev1, lastp] = (1-alpha) * pe + alpha * ne
+            tol = np.abs(Q[prev1, lastp] - oldQ)
+            prev1 = np.argmax(Q[:,lastp])
+    maxp = Q[prev1, lastp]
+    opt = firstq/maxp
+    print('maxp:', maxp)
+    print('old:', firstq)
+    print('end Q', Q)
+    return opt
+            
 
 
 #@jit
@@ -156,6 +184,10 @@ def game(prices, periods, alpha, theta):
     t = 3
     i_counter = 0
     j_counter = 0
+    stepsize = periods/100
+    step_counter =0
+    opt_arr = np.zeros(int(periods/2/5000))
+    k = 0
     for t in range(t, periods+1):
         epsilon = (1-theta)**t
         
@@ -167,8 +199,14 @@ def game(prices, periods, alpha, theta):
             prev_p[1,0] = prev_p[1,1]
             p_ipriser[i_counter] = (prices[p_i])
             i_counter += 1
-            print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            #print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
             profitability += profit(prices[p_i],prices[prev_p[1,1]] ) 
+            if step_counter == stepsize:
+                print("t and stepsize", t-3, stepsize)
+                opt_arr[k] = opti(Q_table, prev_p[1,1],p_i, prices,alpha, 0.95)
+                step_counter = 0
+                k += 1
+            step_counter +=1
             
         else: 
             update(Q_table2, prev_p, alpha, 0.95, prices, 0)
@@ -178,9 +216,10 @@ def game(prices, periods, alpha, theta):
             prev_p[0,0] = prev_p[0,1]
             p_jpriser[j_counter] = (prices[p_j])
             j_counter += 1
-            print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
+            #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             profitability += profit(prices[prev_p[0,1]],prices[p_j] )
-    return (1/periods)*profitability, p_ipriser, p_jpriser, Q_table
+    optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
+    return (1/periods)*profitability, p_ipriser, p_jpriser, Q_table, optimality, opt_arr
             
 #@numba.jit(nopython=True)     
 '''def rep_games(reps): 
@@ -195,33 +234,18 @@ def game(prices, periods, alpha, theta):
     return pro_arr, p1, p2'''
 
 
-def optimality(Q, lastp, prev1, prices, alpha, delta):
-    tol = 1
-    while tol > 0.00001: 
-            oldQ = Q[prev1, lastp]
-            p1 = prices[prev1]
-            p2 = prices[lastp]
-            pe = Q[prev1, lastp]
-            ne = p1*demand(p1,p2) + delta* p1*demand(p1,p2) + delta**2 * Q[np.argmax(Q[:,lastp]),lastp]
-            Q[prev1, lastp] = (1-alpha) * pe + alpha * ne
-            tol = Q[prev1, lastp] - oldQ
-    maxp = Q[np.argmax(Q[:,lastp]), lastp]
-    opt = Q[prev1, lastp]/maxp
-    return opt
-            
-
-
     
 
 #pro = game( x, 1000, 0.3, 0.01372)
 #print('Profitability:', (1/1000)*pro)
 #pro_arr, i, u = rep_games(1000)
 
-pro, arr, arr1, Q_t = game( x, 1000, 0.3, 0.01372)
-t_arr = np.arange(499)
-optimality()
+pro, arr, arr1, Q_t, optimality_1, arr_opt = game( x, 500000, 0.3, 0.00002763)
+t_arr = np.arange(249999)
 print('profitability:', pro)
-
+print('optimality player i:', optimality_1)
+print('q_table player i:', Q_t)
+print('optimality array:', arr_opt)
 plt.plot(t_arr,arr,label='Player 1')
 plt.plot(t_arr,arr1, label='Player 2')
 plt.xlabel("Time t")

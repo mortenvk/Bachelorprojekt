@@ -156,7 +156,7 @@ def opti(Q, lastp, prev1, prices, alpha, delta):
             print('pe:', pe)
             print('ne:', ne)
             Q[prev1, lastp] = (1-alpha) * pe + alpha * ne
-            tol = np.abs(Q[prev1, lastp] - oldQ)
+            tol = oldQ - Q[prev1, lastp]
             prev1 = np.argmax(Q[:,lastp])
     maxp = Q[prev1, lastp]
     opt = firstq/maxp
@@ -218,8 +218,8 @@ def game(prices, periods, alpha, theta):
             j_counter += 1
             #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             profitability += profit(prices[prev_p[0,1]],prices[p_j] )
-    optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
-    return (1/periods)*profitability, p_ipriser, p_jpriser, Q_table, optimality, opt_arr
+    #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
+    return (1/periods)*profitability, p_ipriser, p_jpriser, Q_table, opt_arr
             
 #@numba.jit(nopython=True)     
 '''def rep_games(reps): 
@@ -233,14 +233,24 @@ def game(prices, periods, alpha, theta):
         i+=1
     return pro_arr, p1, p2'''
 
+def many_games(prices, periods, alpha, theta, learners):
+    total_opt_arr = np.zeros((learners), dtype=object)
+    for i in range(learners):
+        proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
+        total_opt_arr[i] = arr_opt_i
+    return total_opt_arr
 
+
+    
     
 
 #pro = game( x, 1000, 0.3, 0.01372)
 #print('Profitability:', (1/1000)*pro)
 #pro_arr, i, u = rep_games(1000)
 
-pro, arr, arr1, Q_t, optimality_1, arr_opt = game( x, 500000, 0.3, 0.00002763)
+#pro, arr, arr1, Q_t, optimality_1, arr_opt = game( x, 500000, 0.3, 0.00002763)
+hej = many_games(x, 500000, 0.3, 0.00002763, 3)
+print('array with 1000 learners for 500000 periods:', hej)
 t_arr = np.arange(249999)
 print('profitability:', pro)
 print('optimality player i:', optimality_1)

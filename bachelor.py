@@ -205,36 +205,31 @@ def game(prices, periods, alpha, theta):
             
             
             
-            if t > (periods+1)-1000:
+            if t >= (periods+1)-1000:
+                k+=1
                 final_profitability += profit(prices[p_i],prices[prev_p[1,1]] )
                 
-            '''if step_counter == stepsize:
-                print('Profitability: ',profit(prices[p_i],prices[prev_p[1,1]]), ' period: ' , t, ' stepcounter, stepsize: ', step_counter, stepsize )
-                prof_arr[k] = profit(prices[p_i],prices[prev_p[1,1]])
-                k +=1 
-                step_counter = 0'''
                 
-            '''if step_counter == stepsize:
-                print("t and stepsize", t-3, stepsize)
-                opt_arr[k] = opti(Q_table, prev_p[1,1],p_i, prices,alpha, 0.95)
-                step_counter = 0
-                k += 1
-            step_counter +=1'''
-            
+      
         else: 
             update(Q_table2, prev_p, alpha, 0.95, prices, 0)
-            p_j = player4(prices, Q_table2, epsilon, prev_p)
+            #p_j = player4(prices, Q_table2, epsilon, prev_p)
+            p_j = player2(prices)
             prev_p[1,0] = prev_p[1,1]
             prev_p[1,1] = p_j
             prev_p[0,0] = prev_p[0,1]
             p_jpriser[j_counter] = (prices[p_j])
             j_counter += 1
             #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
-            if t > (periods+1)-1000:
+            if t >= (periods+1)-1000:
                 final_profitability += profit(prices[prev_p[0,1]],prices[p_j])
+                k+=1
+
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
+    print('K', k)
     return (1/1000)*final_profitability, p_ipriser, p_jpriser, Q_table, opt_arr
-            
+
+
 #@numba.jit(nopython=True)     
 '''def rep_games(reps): 
     i=0
@@ -248,41 +243,73 @@ def game(prices, periods, alpha, theta):
     return pro_arr, p1, p2'''
 
 def many_games(prices, periods, alpha, theta, learners):
-    total_opt_arr = np.zeros((learners), dtype=object)
-    for i in range(learners):
-        proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
-        total_opt_arr[i] = arr_opt_i
-    return total_opt_arr
-
-#tanken var her at forsøge at lave average over forskellige antal perioder
-#det var dog at regne 10 forskellige thetaer som gjorde at det ikke var muligt...
-'''def prof_tests(prices, alpha, theta):
-    prof_array = np.zeroes((10))
-    for i in range(500000,500000,50000):
-        prof, go, go1, go2, go3, go4 = game(prices, i, alpha, theta)
-        prof_array[(i/50000)] = prof
-    return prof_array'''
-# List of thetas corresponding to [50000, 100000, 150000,]
-theta_list = [(0.0002763),0.000138145562602519,0.0000690751669906070, 0]
-
-def prof_tests2(prices, periods, alpha, theta, learners):
-    total_opt_arr = np.zeros((learners), dtype=object)
+    total_opt_arr = np.zeros((learners))
     for i in range(learners):
         proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
         total_opt_arr[i] = proi
+    return np.average(total_opt_arr)
+
+
+def prof_tests(prices, alpha, theta_list, learners):
+    prof_array = np.zeros((10))
+    for i in range(50000,550000,50000):
+        print('i',i)
+        #prof, go, go1, go2, go3 = game(prices, i, alpha, theta_list[int((i/50000)-1)])
+       
+        prof = many_games(prices, i, alpha, theta_list[int((i/50000)-1)],learners)
+
+        prof_array[int((i/50000)-1)] = prof
+        
+    return prof_array
+
+
+# List of thetas corresponding to [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000]
+theta_list = [(0.0002763),0.000138145562602519,0.0000920991623314899, 0.0000690751669906070, 0.0000552605153133283 ,0.0000460506414965361 , 0.0000394721082643035, 0.0000345381799382402, 0.0000307006632982448, 0.0000276306393827805]
+
+def prof_tests2(prices, periods, alpha, theta, learners):
+    total_opt_arr = np.zeros((learners), dtype=object)
+    
+    for i in range(learners):
+        proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
+        total_opt_arr[i] = proi
+        
     return total_opt_arr
     
+#Printing average profitability across 10 learners and 10 different T
+'''
+pro_print, price_i, price_j = prof_tests(x, 0.3, theta_list, 10)
+t_arr = np.arange(10)
+t_arr2 = np.arange(249999)
+fig, (prof_plot, price_plot) = plt.subplots(2,1)
 
-pro_print = prof_tests2(x, 100000, 0.3, 0.0001381, 100)
-t_arr = np.arange(100)
+prof_plot.plot(t_arr,pro_print,label='Profitability')
+price_plot.plot(t_arr2, price_i, label= 'price_i')
+price_plot.plot(t_arr2, price_j, label= 'prices_j')
 
-plt.plot(t_arr,pro_print,label='Profitability')
 
-plt.xlabel("Runs")
-plt.ylabel("Profitability")
+#plt.xlabel("Runs")
+#plt.ylabel("Profitability")
+#plt.legend()
+
+
+
+plt.show()'''
+
+
+
+# PRINTING for EACH period switching between players
+pro, arr, arr1, Q_t, optimality_1 = game( x, 500000, 0.3, 0.00002763)
+t_arr1 = np.arange(0, 499998, 2)
+t_arr2 = np.arange(1,499999,2)
+print('profitability:', pro)
+print('optimality player i:', optimality_1)
+print('q_table player i:', Q_t)
+plt.plot(t_arr1,arr,'-',label='Player 1', )
+plt.plot(t_arr2,arr1,'-', label='Player 2')
+plt.xlabel("Time t")
+plt.ylabel("Price")
 plt.legend()
 plt.show()
-
 print('HEY! final profitablity arr: ', pro_print)
 '''bla, p1_prices, p2_prices, basd, jsdhf, prof_arr1 = game( x, 100000, 0.3, 0.0001381)
 t_arr = np.arange(0, )

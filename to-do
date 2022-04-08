@@ -1,0 +1,16 @@
+SKAL
+"lette" opgaver:
+- Skrive Q-learning afsnit
+
+"svære" opgaver:
+- Styr på Optimality
+    - Kommentarer til hans version
+    - Få lavet en god graf
+
+- Sæt q-learner op imod en simpel  spiller (tit for tat eller trigger-ish)
+
+VIL
+- Sæt q-learner op mod en restricted q-learner (eller andre mere kompekse spillere)
+
+- Få styr på numba (jit)
+

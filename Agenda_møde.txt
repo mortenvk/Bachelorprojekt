@@ -3,9 +3,11 @@
 
     1. Optimality? over 1?
 
-    2. Vi har valgt restrictions og
+    2. se vores grafer. For få simulationer, tager for lang tid. Klein har gjort det på en anden måde. Sidste 1000 perioder ift. profitability.
+        Jit skal fungere eller vi skal have hjælp udefra. 
+    
 
-    3. se vores grafer.
+    3. Når der er styr på ovenstående: Vi har valgt at gå restriction-vejen og se om en Q-learner kan slå en tilbageholdt spiller. 
 
     
     

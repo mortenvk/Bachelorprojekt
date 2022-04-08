@@ -6,7 +6,7 @@ import datetime as time
 from numba import jit
 from matplotlib import pyplot as plt
 
-random.seed(1234)
+random.seed(1235)
 #Demand function from Klein (2020)
 #@jit
 def demand(p1,p2):
@@ -204,7 +204,7 @@ def many_games(prices, periods, alpha, theta, learners):
         total_opt_arr[i] = proi
     return (total_opt_arr)
 
-many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,3)
+many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,40)
 print('multi-dim prof', many_profs)
 
 samlet_prof = many_profs.mean(0)
@@ -292,6 +292,7 @@ plt.plot(moving_averages, label="Average profitability")
 plt.xlabel('t')
 plt.ylabel('Avg. profitability')
 plt.ylim(0.00, 0.15)
+plt.show()
 #Printing average profitability across 10 learners and 10 different T
 
 

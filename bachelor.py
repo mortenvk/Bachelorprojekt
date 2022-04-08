@@ -6,7 +6,7 @@ import datetime as time
 from numba import jit
 from matplotlib import pyplot as plt
 
-
+random.seed(1234)
 #Demand function from Klein (2020)
 #@jit
 def demand(p1,p2):
@@ -121,24 +121,21 @@ def game(prices, periods, alpha, theta):
     a = len(prices)
     Q_table = np.zeros((a, a))
     Q_table2 = np.zeros((a, a))
-    final_profitability = 0.0
     optimality = 0.0
     print('CHECK', int(periods/2)-1, 'starting a run with ', periods, ' periods')
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
     prev_p = np.zeros((2,2), dtype=int)
+    prof_arr = np.zeros(int(periods-2))
     for i in range(1):
         for j in range(1):
             prev_p[i,j] = np.random.choice(len(prices))
     t = 3
     i_counter = 0
     j_counter = 0
-    
     stepsize = periods/50
     step_counter =0
     opt_arr = np.zeros(int(periods/2/5000-1))
-    prof_arr = np.zeros(int(periods/2/2500-1))
-    k = 0
     b = 0
     for t in range(t, periods+1):
         epsilon = (1-theta)**t
@@ -153,11 +150,7 @@ def game(prices, periods, alpha, theta):
             i_counter += 1
             #print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
             
-            
-            
-            if t >= (periods+1)-1000:
-                k+=1
-                final_profitability += profit(prices[p_i],prices[prev_p[1,1]] )
+            prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[prev_p[1,1]])
                 
             '''if step_counter == stepsize:
                 print('Profitability: ',profit(prices[p_i],prices[prev_p[1,1]]), ' period: ' , t, ' stepcounter, stepsize: ', step_counter, stepsize )
@@ -184,14 +177,10 @@ def game(prices, periods, alpha, theta):
             p_jpriser[j_counter] = (prices[p_j])
             j_counter += 1
             #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
-            if t >= (periods+1)-1000:
-                final_profitability += profit(prices[prev_p[0,1]],prices[p_j])
-                k+=1
-            step_counter +=1
+            prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[p_j])
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
-    print('K', k)
     print ('B', b)
-    return (1/1000)*final_profitability, p_ipriser, p_jpriser, Q_table, opt_arr
+    return prof_arr, p_ipriser, p_jpriser, Q_table, opt_arr
 
 
 #@numba.jit(nopython=True)     
@@ -209,11 +198,16 @@ def game(prices, periods, alpha, theta):
 
 #simulating multiple runs and averaging profit
 def many_games(prices, periods, alpha, theta, learners):
-    total_opt_arr = np.zeros((learners))
+    total_opt_arr = np.zeros((learners,periods-2),dtype=object)
     for i in range(learners):
         proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
         total_opt_arr[i] = proi
-    return np.average(total_opt_arr)
+    return (total_opt_arr)
+
+many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,3)
+print('multi-dim prof', many_profs)
+
+samlet_prof = many_profs.mean(0)
 
 #collecting profitability from many_games. 
 def prof_tests(prices, alpha, theta_list, learners):
@@ -242,25 +236,63 @@ def prof_tests2(prices, periods, alpha, theta, learners):
         
     return total_opt_arr
     
-#Printing average profitability across 10 learners and 10 different T
-pro_print = prof_tests(x, 0.3, theta_list, 10)
+    
+###
+#a random game with 500000 reps
+'''
+prof_arr, arr, arr1, bla, bla= game( x, 500000, 0.3, 0.0000276306393827805)
+print('profitability',prof_arr)
+t_arr1 = np.arange(0,499998,2)
+t_arr2 = np.arange(1,449999,2)
 
-t_arr = np.arange(50000, 550000, 50000)
-t_arr2 = np.arange(249999)
-#fig, (prof_plot, price_plot) = plt.subplots(2,1)
-
-plt.plot(t_arr,pro_print,label='Profitability')
-#price_plot.plot(t_arr2, price_i, label= 'price_i')
-#price_plot.plot(t_arr2, price_j, label= 'prices_j')
-plt.ylim(0.04, 0.15)
-
-plt.xlabel("Runs")
-plt.ylabel("Profitability")
+plt.plot(t_arr1,arr,'-',label='Player 1', )
+plt.plot(t_arr1,arr1,'-', label='Player 2')
+plt.xlabel("Time t")
+plt.ylabel("Price")
 plt.legend()
-
-
-
 plt.show()
+'''
+
+window_size = 1000
+  
+i = 0
+# Initialize an empty list to store moving averages
+moving_averages = []
+# Loop through the array t o
+#consider every window of size 3
+while i < len(samlet_prof) - window_size + 1:
+  
+    # Calculate the average of current window
+    window_average = round(np.sum(samlet_prof[
+      i:i+window_size]) / window_size, 2)
+      
+    # Store the average of current
+    # window in moving average list
+    moving_averages.append(window_average)
+      
+    # Shift window to right by one position
+    i += 1
+#print(moving_averages)
+
+###
+#Plotting 2 simultaneous plots
+'''fig, (ax1,ax2) = plt.subplots(2)
+ax1.plot(t_arr1,arr,'-',label='Player 1', )
+ax1.plot(t_arr1,arr1,'-', label='Player 2')
+
+ax2.plot(moving_averages,label ='profitabilitet')
+ax1.set(xlabel=("Time t"), ylabel=("Price"))
+
+ax2.set(ylim=(0.04,0.15))
+plt.legend()
+plt.show()'''
+
+
+plt.plot(moving_averages, label="Average profitability")
+plt.xlabel('t')
+plt.ylabel('Avg. profitability')
+plt.ylim(0.00, 0.15)
+#Printing average profitability across 10 learners and 10 different T
 
 
 '''

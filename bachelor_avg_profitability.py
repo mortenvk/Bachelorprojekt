@@ -205,12 +205,12 @@ def many_games(prices, periods, alpha, theta, learners):
         total_opt_arr[i] = proi
     return (total_opt_arr)
 
-'''
+
 many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,40)
 print('multi-dim prof', many_profs)
 
 samlet_prof = many_profs.mean(0)
-numpy_prof = np.mean(many_profs, axis=0)'''
+numpy_prof = np.mean(many_profs, axis=0)
 
 #print('Average array: ', samlet_prof)
 #collecting profitability from many_games. 
@@ -256,7 +256,7 @@ plt.ylabel("Price")
 plt.legend()
 plt.show()
 '''
-'''
+
 window_size = 1000
   
 i = 0
@@ -275,7 +275,7 @@ while i < len(samlet_prof) - window_size + 1:
       
     # Shift window to right by one position
     i += 1
-'''
+
 #print('moving averages:', moving_averages[0:100000])
 
 ###
@@ -291,14 +291,14 @@ ax2.set(ylim=(0.04,0.15))
 plt.legend()
 plt.show()'''
 
-'''
+
 plt.plot(moving_averages, label="Average profitability")
 plt.xlabel('t')
 plt.ylabel('Avg. profitability')
 plt.ylim(0.00, 0.15)
 plt.show()
 #Printing average profitability across 10 learners and 10 different T
-'''
+
 
 '''
 # PRINTING for EACH period switching between players

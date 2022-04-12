@@ -88,30 +88,30 @@ def profit(pris1, pris2):
 
 #Optimality function, keeping opponent price constant and iterates until convergence towards perfect Q-value
 def opti(Q, lastp, prev1, prices, alpha, delta):
-    tol = 1
-    Q_here = Q
-    print('p2last price', lastp)
-    print('old q_table:\n', Q)
+    Q_here = np.copy(Q)
+    #print('p2last price', lastp)
+    #print('old q_table:\n', Q)
     firstq = Q_here[prev1, lastp]
-    while tol > 0.00001:
-            print('1 iteration', tol)
-            print('prev1:', prev1)
-            p1 = prices[prev1]
-            p2 = prices[lastp]
-            pe = Q_here[prev1, lastp]
-            oldQ = Q_here[prev1, lastp]
-            ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
-            '''print('demand p1:', p1*demand(p1, p2))
-            print('pe:', pe)
-            print('ne:', ne)'''
-            Q_here[prev1, lastp] = (1-alpha) * pe + alpha * ne
-            tol = oldQ - Q_here[prev1, lastp]
-            prev1 = np.argmax(Q[:,lastp])
-    maxp = Q_here[prev1, lastp]
+    arr_q = np.zeros(len(prices))
+    for k in range(len(prices)):
+        tol = 1
+        p1 = prices[k]
+        while tol > 0.00001:
+                p2 = prices[lastp]
+                pe = Q_here[k, lastp]
+                oldQ = Q_here[k, lastp]
+                ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
+                Q_here[k, lastp] = (1-alpha) * pe + alpha * ne
+                tol = np.abs(oldQ - Q_here[k, lastp])
+                #print('tol:', tol)
+        arr_q[k] = Q_here[k, lastp]
+    maxp = Q_here[np.argmax(arr_q),lastp]
     opt = firstq/maxp
-    '''print('maxp:', maxp)
-    print('old:', firstq)
-    print('end Q', Q)'''
+    '''
+    if (opt > 1):
+        print('maxp:', maxp, prices[np.argmax(arr_q)])
+        print('old:', firstq,'price', prices[prev1])
+    '''
     return opt
             
 
@@ -142,16 +142,23 @@ def game(prices, periods, alpha, theta):
         
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, 0.95, prices,1)
-            p_i = player3(prices, Q_table, epsilon, prev_p)
+            
+            
+            #print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
+            
+            prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[prev_p[1,1]])
+            '''if t == 450001:
+                p_i = prev_p[1,1]-1
+                print(' im deviating')
+            else:
+                p_i = player3(prices, Q_table, epsilon, prev_p)'''
+            p_i = player3(prices, Q_table, epsilon, prev_p)  
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
             p_ipriser[i_counter] = (prices[p_i])
-            i_counter += 1
-            #print('Spiller 1 tur: p:', prices[p_i],' p_j: ', prices[prev_p[1,1]],'iteration:', t,'Q_table: \n', Q_table)
             
-            prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[prev_p[1,1]])
-                
+            i_counter += 1
             '''if step_counter == stepsize:
                 print('Profitability: ',profit(prices[p_i],prices[prev_p[1,1]]), ' period: ' , t, ' stepcounter, stepsize: ', step_counter, stepsize )
                 prof_arr[k] = profit(prices[p_i],prices[prev_p[1,1]])
@@ -159,7 +166,6 @@ def game(prices, periods, alpha, theta):
                 step_counter = 0'''
                 
             '''if step_counter == stepsize:
-                print("t and stepsize", t-3, stepsize)
                 opt_arr[b] = opti(Q_table, prev_p[1,1], p_i, prices, alpha, 0.95)
                 step_counter = 0
                 b += 1
@@ -206,12 +212,14 @@ def many_games(prices, periods, alpha, theta, learners):
     return (total_opt_arr)
 
 
+#RUN WITH 40 RUNS
+'''
 many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,40)
 print('multi-dim prof', many_profs)
 
 samlet_prof = many_profs.mean(0)
 numpy_prof = np.mean(many_profs, axis=0)
-
+''' 
 #print('Average array: ', samlet_prof)
 #collecting profitability from many_games. 
 def prof_tests(prices, alpha, theta_list, learners):
@@ -243,20 +251,22 @@ def prof_tests2(prices, periods, alpha, theta, learners):
     
 ###
 #a random game with 500000 reps
-'''
+
 prof_arr, arr, arr1, bla, bla= game( x, 500000, 0.3, 0.0000276306393827805)
 print('profitability',prof_arr)
-t_arr1 = np.arange(0,499998,2)
-t_arr2 = np.arange(1,449999,2)
+t_arr1 = np.arange(3,500001,2)
+t_arr2 = np.arange(4,500002,2)
 
-plt.plot(t_arr1,arr,'-',label='Player 1', )
-plt.plot(t_arr1,arr1,'-', label='Player 2')
+plt.plot(t_arr1,arr,'--o',label='Player 1', )
+plt.plot(t_arr2,arr1,'s--', label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend()
 plt.show()
-'''
 
+
+#CALCULATING MOVING AVERAGE:
+'''
 window_size = 1000
   
 i = 0
@@ -275,7 +285,7 @@ while i < len(samlet_prof) - window_size + 1:
       
     # Shift window to right by one position
     i += 1
-
+'''
 #print('moving averages:', moving_averages[0:100000])
 
 ###
@@ -292,13 +302,13 @@ plt.legend()
 plt.show()'''
 
 
-plt.plot(moving_averages, label="Average profitability")
+## PLOTTING THE MOVING AVERAGE FROM MULTIPLE RUNS
+
+'''plt.plot(moving_averages, label="Average profitability")
 plt.xlabel('t')
 plt.ylabel('Avg. profitability')
 plt.ylim(0.00, 0.15)
-plt.show()
-#Printing average profitability across 10 learners and 10 different T
-
+plt.show()'''
 
 '''
 # PRINTING for EACH period switching between players
@@ -328,10 +338,10 @@ plt.show()'''
 #pro_arr, i, u = rep_games(1000)
 
 #OPTIMALITY BEREGNING
-pro, arr, arr1, Q_t, arr_opt = game( x, 500000, 0.3, 0.0000276306393827805)
+#pro, arr, arr1, Q_t, arr_opt = game( x, 500000, 0.3, 0.0000276306393827805)
 #hej = many_games(x, 500000, 0.3, 0.00002763, 3)
 #print('array with 1000 learners for 500000 periods:', hej)
-
+'''
 print('profitability:', pro)
 #print('optimality player i:', optimality_1)
 print('q_table player i:', Q_t)
@@ -344,4 +354,4 @@ plt.plot(t_arr,arr1, label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend()
-plt.show()
+plt.show()'''

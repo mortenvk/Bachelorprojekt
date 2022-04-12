@@ -1,0 +1,31 @@
+from hashlib import new
+import numpy as np
+    
+def demand():
+        return 1
+
+
+    
+    
+    
+def optimality(Q_table, opponent_price, my_price, all_prices, alpha, delta):
+    Q_here = np.copy(Q_table)
+    init_q = Q_here[my_price, opponent_price]
+    array_of_qstars = np.zeros(len(all_prices))
+    for i in range(len(all_prices)):
+        tolerance = 1
+        p1 = all_prices[i]
+        while tolerance > 0.00001:
+                p2 = all_prices[opponent_price]
+                previous_estimate = Q_here[i, opponent_price]
+                new_estimate = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,opponent_price]),opponent_price]
+                Q_here[i, opponent_price] = (1-alpha) * previous_estimate + alpha * new_estimate
+                tolerance = np.abs(previous_estimate - Q_here[i, opponent_price])
+        array_of_qstars[i] = Q_here[i, opponent_price]
+    maxp = Q_here[np.argmax(array_of_qstars),opponent_price]
+    optimality = init_q/maxp
+    return optimality
+
+
+
+

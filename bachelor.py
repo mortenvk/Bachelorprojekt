@@ -6,7 +6,7 @@ import datetime as time
 from numba import jit
 from matplotlib import pyplot as plt
 
-random.seed(1235)
+#random.seed(1235)
 #Demand function from Klein (2020)
 #@jit
 def demand(p1,p2):
@@ -36,13 +36,13 @@ def player2(prices):
 
 #A Q-learning player 
 #@jit
-def player3(prices, Q, epsilon, prev):
+def player3(prices, Q, epsilon, p2):
     if random.uniform(0,1) < epsilon:
         p3 = np.random.choice(len(prices))
         #print('now its random', epsilon)
     else:
         #p3, pyt = np.unravel_index(np.argmax(Q),Q.shape)
-        p3 = np.argmax(Q[:,prev[1,1]])
+        p3 = np.argmax(Q[:,int(p2)])
     return p3
 
 
@@ -87,31 +87,30 @@ def profit(pris1, pris2):
 
 
 #Optimality function, keeping opponent price constant and iterates until convergence towards perfect Q-value
-def opti(Q, lastp, prev1, prices, alpha, delta):
+def opti(Q, lastp, prev1, prices, alpha, delta, theta, current_round):
     Q_here = np.copy(Q)
-    #print('p2last price', lastp)
-    #print('old q_table:\n', Q)
     firstq = Q_here[prev1, lastp]
-    arr_q = np.zeros(len(prices))
-    for k in range(len(prices)):
-        tol = 1
-        p1 = prices[k]
-        while tol > 0.00001:
-                p2 = prices[lastp]
-                pe = Q_here[k, lastp]
-                oldQ = Q_here[k, lastp]
-                ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
-                Q_here[k, lastp] = (1-alpha) * pe + alpha * ne
-                tol = abs(oldQ - Q_here[k, lastp])
-                #print('tol:', tol)
-        arr_q[k] = Q_here[k, lastp]
-    maxp = Q_here[np.argmax(arr_q),lastp]
+    tol = 1
+    p2 = prices[lastp]
+    #print('p2:',p2)
+    while tol > 0.00001:
+        epsilon = (1-theta)**current_round
+        p1_indic = player3(prices, Q_here, epsilon, lastp)
+        p1 = prices[p1_indic]
+        pe = Q_here[p1_indic, lastp]
+        ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
+        Q_here[p1_indic, lastp] = (1-alpha) * pe + alpha * ne
+        tol = abs(pe - Q_here[p1_indic, lastp])
+        current_round+=2
+    maxp = Q_here[np.argmax(Q_here[:,lastp]),lastp]
+    #print('maxp:', maxp)
+    #print('firstq:', firstq)
     opt = firstq/maxp
-    '''
-    if (opt > 1):
-        print('maxp:', maxp, prices[np.argmax(arr_q)])
-        print('old:', firstq,'price', prices[prev1])
-    '''
+    
+    if (opt > 10):
+        print('maxp:', maxp, 'p2:', p2)
+        print('old:', firstq)
+  
     return opt
             
 
@@ -142,7 +141,7 @@ def game(prices, periods, alpha, theta, delta):
         
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, delta, prices,1)
-            p_i = player3(prices, Q_table, epsilon, prev_p)
+            p_i = player3(prices, Q_table, epsilon, prev_p[1,1])
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
@@ -155,7 +154,7 @@ def game(prices, periods, alpha, theta, delta):
                 
             if step_counter == stepsize:
                 #print("t and stepsize", t-3, stepsize)
-                opt_arr[b] = opti(Q_table, prev_p[1,1], p_i, prices, alpha, delta)
+                opt_arr[b] = opti(Q_table, prev_p[1,1], p_i, prices, alpha, delta, theta, t)
                 step_counter = 0
                 b += 1
             step_counter +=1
@@ -201,7 +200,7 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta, delta)
         total_pro_arr[i] = proi
         total_opt_arr[i] = arr_opt_i
-    return (total_pro_arr, total_opt_arr)
+    return total_pro_arr, total_opt_arr
 
 
 many_profs, many_opt = many_games(x, 500000, 0.3, 0.0000276306393827805,10, 0.95)
@@ -209,7 +208,7 @@ many_profs, many_opt = many_games(x, 500000, 0.3, 0.0000276306393827805,10, 0.95
 print('many_opt:',many_opt)
 
 samlet_prof = many_profs.mean(0)
-samlet_opt = many_opt.mean(0)
+samlet_opt = np.mean(many_opt,axis=0)
 '''
 #collecting profitability from many_games. 
 def prof_tests(prices, alpha, theta_list, learners):
@@ -322,6 +321,11 @@ plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend()
 plt.show()'''
+'''
+pro, arr, arr1, Q_t, arr_opt = game( x, 500000, 0.3, 0.0000276306393827805, 0.95)
+print('optimality array single:', arr_opt)
+'''
+
 
 '''
 #OPTIMALITY BEREGNING

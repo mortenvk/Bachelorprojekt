@@ -1,4 +1,28 @@
     
+    Endnu ny ny agenda: 
+
+    1. Har du set optimality mulighederne vi har fremlagt og har overvejelser? Skulle man eventuelt anvende en anden metric? 
+
+    2. Tit for tat, har Q-learnet udfordret og vundet over. 
+        Vi har prøvet forskellige restrictions på Q-learner - med svingende success.
+
+    3. De store, lange runs er nok lige rundt om hjørnet. Hvor bør vi køre batch runs? eventuelt give Numba et skud til? 
+
+
+
+    Endny nyere agenda:
+
+    1. Optimality skal vi have på plads 
+
+    2. Klein: 
+    "I evaluate the average profitability, average optimality and the share of Nash equilibria at the end of the simulations, where I vary each time the total amount of learning periods T."
+    Vi skal lige være helt sikre på at T=500.000 for alle runs er vejen. 
+
+    3.
+    
+    
+    
+    
     ny Agenda: 
 
     1. Optimality? over 1?

@@ -20,6 +20,7 @@ def demand(p1,p2):
     
 #Price list, k= 6
 x = [0, 1/6, 2/6, 3/6, 4/6, 5/6, 1]
+#x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 #A player picking random prices
 #@numba.jit(nopython=True)
@@ -206,52 +207,31 @@ def game(prices, periods, alpha, theta):
 def many_games(prices, periods, alpha, theta, learners):
     total_opt_arr = np.zeros((learners,periods-2),dtype=object)
     for i in range(learners):
-        print('Run #', i, ' of ', learners, ' runs.')
+        print('Run #', i+1, ' of ', learners, ' runs.')
         proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
         total_opt_arr[i] = proi
     return (total_opt_arr)
 
 
 #RUN WITH 40 RUNS
-'''
+
 many_profs = many_games(x, 500000, 0.3, 0.0000276306393827805,40)
 print('multi-dim prof', many_profs)
 
 samlet_prof = many_profs.mean(0)
 numpy_prof = np.mean(many_profs, axis=0)
-''' 
-#print('Average array: ', samlet_prof)
-#collecting profitability from many_games. 
-def prof_tests(prices, alpha, theta_list, learners):
-    prof_array = np.zeros((10))
-    for i in range(50000,550000,50000):
-        print('i',i)
-        #prof, go, go1, go2, go3 = game(prices, i, alpha, theta_list[int((i/50000)-1)])
-       
-        prof = many_games(prices, i, alpha, theta_list[int((i/50000)-1)],learners)
 
-        prof_array[int((i/50000)-1)] = prof
-        
-    return prof_array
+
+#collecting profitability from many_games. 
 
 
 # List of thetas corresponding to [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000]
 theta_list = [(0.0002763),0.000138145562602519,0.0000920991623314899, 0.0000690751669906070, 0.0000552605153133283 ,0.0000460506414965361 , 0.0000394721082643035, 0.0000345381799382402, 0.0000307006632982448, 0.0000276306393827805]
-
-#beta version of prof_tests
-def prof_tests2(prices, periods, alpha, theta, learners):
-    total_opt_arr = np.zeros((learners), dtype=object)
-    
-    for i in range(learners):
-        proi, arri, arr1i, Q_ti, arr_opt_i = game(prices, periods, alpha, theta)
-        total_opt_arr[i] = proi
-        
-    return total_opt_arr
     
     
 ###
 #a random game with 500000 reps
-
+'''
 prof_arr, arr, arr1, bla, bla= game( x, 500000, 0.3, 0.0000276306393827805)
 print('profitability',prof_arr)
 t_arr1 = np.arange(3,500001,2)
@@ -263,17 +243,17 @@ plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend()
 plt.show()
-
+'''
 
 #CALCULATING MOVING AVERAGE:
-'''
+
 window_size = 1000
   
 i = 0
 # Initialize an empty list to store moving averages
 moving_averages = []
 # Loop through the array t o
-#consider every window of size 3
+#consider every window of size 1000
 while i < len(samlet_prof) - window_size + 1:
   
     # Calculate the average of current window
@@ -285,7 +265,7 @@ while i < len(samlet_prof) - window_size + 1:
       
     # Shift window to right by one position
     i += 1
-'''
+
 #print('moving averages:', moving_averages[0:100000])
 
 ###
@@ -304,11 +284,11 @@ plt.show()'''
 
 ## PLOTTING THE MOVING AVERAGE FROM MULTIPLE RUNS
 
-'''plt.plot(moving_averages, label="Average profitability")
+plt.plot(moving_averages, label="Average profitability")
 plt.xlabel('t')
 plt.ylabel('Avg. profitability')
 plt.ylim(0.00, 0.15)
-plt.show()'''
+plt.show()
 
 '''
 # PRINTING for EACH period switching between players

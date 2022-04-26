@@ -236,7 +236,7 @@ def many_games(prices, periods, alpha, theta, learners,delta):
     total_pro_arr2 = np.zeros((learners,periods-2),dtype=object)
     total_opt_arr = np.zeros((learners, 49), dtype = object)
     for i in range(learners):
-        print('run #',i ,'of ', learners , 'runs')
+        print('run #',i ,'of ', learners-1 , 'runs')
         proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
         total_pro_arr[i] = proi
         total_pro_arr2[i] = proi2

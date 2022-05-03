@@ -127,7 +127,7 @@ def opti(Q, lastp, prev1, prices, alpha, delta, theta, current_round):
     #print('p2:',p2)
     while tol > 0.00001:
         epsilon = (1-theta)**current_round
-        p1_indic = player3(prices, Q_here, epsilon, lastp)
+        p1_indic = player6(prices, Q_here, epsilon, lastp)
         p1 = prices[p1_indic]
         pe = Q_here[p1_indic, lastp]
         ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
@@ -249,7 +249,7 @@ def many_games(prices, periods, alpha, theta, learners,delta):
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805,40, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805,10, 0.95)
 #print('multi-dim prof', many_profs)
 print('many_opt:',many_opt)
 
@@ -312,7 +312,7 @@ while i < len(samlet_prof) - window_size + 1:
 t_arr1 = np.arange(0,498999)
 t_arr2 = np.arange(0,498999)
 plt.plot(t_arr1,moving_averages,'-',label='Player 1', )
-#plt.plot(t_arr2,moving_averages2,'-', label='Player 2')
+plt.plot(t_arr2,moving_averages2,'-', label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)

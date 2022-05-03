@@ -119,29 +119,39 @@ def profit(pris1, pris2):
 
 
 #Optimality function, keeping opponent price constant and iterates until convergence towards perfect Q-value
-def opti(Q, lastp, prev1, prices, alpha, delta, theta, current_round):
+def opti(Q, Q2, lastp, prev1, prices, alpha, delta, theta, current_round):
     Q_here = np.copy(Q)
     firstq = Q_here[prev1, lastp]
     tol = 1
+    p1_indic = prev1
+    p2_indic = lastp
     p2 = prices[lastp]
     #print('p2:',p2)
     while tol > 0.00001:
         epsilon = (1-theta)**current_round
-        p1_indic = player6(prices, Q_here, epsilon, lastp)
         p1 = prices[p1_indic]
-        pe = Q_here[p1_indic, lastp]
-        ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2) + delta**2 * Q_here[np.argmax(Q_here[:,lastp]),lastp]
-        Q_here[p1_indic, lastp] = (1-alpha) * pe + alpha * ne
-        tol = abs(pe - Q_here[p1_indic, lastp])
+        p2_1_indic = np.argmax(Q2[:,p1_indic])
+        #p2_1_indic = player3(prices, Q2, epsilon, p1_indic)
+        p2_1 = prices[p2_1_indic]
+        pe = Q_here[p1_indic, p2_indic]
+        ne = p1 * demand(p1,p2) + delta * p1 * demand(p1,p2_1) + delta**2 * Q_here[np.argmax(Q_here[:,p2_1_indic]),p2_1_indic]
+        Q_here[p1_indic, p2_indic] = (1-alpha) * pe + alpha * ne
+        
+        p1_indic = player3(prices, Q_here, epsilon, p2_indic)
+        p2 = p2_1
+        p2_indic = p2_1_indic
+        tol = abs(pe - Q_here[p1_indic, p2_indic])
         current_round+=2
-    maxp = Q_here[np.argmax(Q_here[:,lastp]),lastp]
+    finalp1 = np.argmax(Q_here[:,lastp])  
+    maxp = Q_here[finalp1, lastp]
     #print('maxp:', maxp)
     #print('firstq:', firstq)
     opt = firstq/maxp
     
-    if (opt > 10):
+    if (opt > 1):
+        print("PERIOD", current_round)
         print('maxp:', maxp, 'p2:', p2)
-        print('old:', firstq)
+        print('old:', firstq, 'p1start: ', prices[prev1], 'p1 slut:', prices[finalp1])
   
     return opt
             
@@ -185,14 +195,13 @@ def game(prices, periods, alpha, theta, delta):
             prof_arr2[t-3] = profit(prices[prev_p[1,1]], prices[p_i])
             prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[prev_p[1,1]])
         
-            '''  
             if step_counter == stepsize:
-                #print("t and stepsize", t-3, stepsize)
-                opt_arr[b] = opti(Q_table, prev_p[1,1], p_i, prices, alpha, delta, theta, t)
-                step_counter = 0
-                b += 1
+                    #print("t and stepsize", t-3, stepsize)
+                    opt_arr[b] = opti(Q_table, Q_table2, prev_p[1,1], np.argmax(Q_table[:,prev_p[1,1]]), prices, alpha, delta, theta, t)
+                    step_counter = 0
+                    b += 1
             step_counter +=1
-            '''
+            
                 
                 
       
@@ -241,15 +250,15 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         total_pro_arr[i] = proi
         total_pro_arr2[i] = proi2
         total_opt_arr[i] = arr_opt_i
-        print('profitability1',proi[-10:])
-        print('profitability1',proi2[-10:])
-        print('pris1:', arri[-10:])
-        print('priser2:', arr1i[-10:])
+        #print('profitability1',proi[-10:])
+        #print('profitability1',proi2[-10:])
+        #print('pris1:', arri[-10:])
+        #print('priser2:', arr1i[-10:])
     return total_pro_arr, total_opt_arr, total_pro_arr2
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805,10, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805,3, 0.95)
 #print('multi-dim prof', many_profs)
 print('many_opt:',many_opt)
 
@@ -266,8 +275,8 @@ theta_list = [(0.0002763),0.000138145562602519,0.0000920991623314899, 0.00006907
 #a random game with 500000 reps
 
 ''' 
-'''
-prof_arr, arr, arr1, q_table, bla= game( x, 500000, 0.3, 0.0000276306393827805, 0.95)
+''' 
+prof_arr, arr, arr1, q_table, bla, bla2 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
 print('profitability',prof_arr[-10:])
 t_arr1 = np.arange(0,499998,2)
 t_arr2 = np.arange(1,499999,2)
@@ -281,7 +290,7 @@ plt.ylabel("Price")
 plt.legend()
 plt.show()
 '''
-
+''' 
 window_size = 1000
   
 i = 0
@@ -312,13 +321,13 @@ while i < len(samlet_prof) - window_size + 1:
 t_arr1 = np.arange(0,498999)
 t_arr2 = np.arange(0,498999)
 plt.plot(t_arr1,moving_averages,'-',label='Player 1', )
-plt.plot(t_arr2,moving_averages2,'-', label='Player 2')
+#plt.plot(t_arr2,moving_averages2,'-', label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
-
+'''
 ###
 #Plotting 2 simultaneous plots
 '''
@@ -345,14 +354,15 @@ ax2.set(ylim=(0.04,0.15))
 plt.legend()
 plt.show()
 '''
-'''
+
 plt.plot(samlet_opt, label="Average optimality")
 plt.xlabel('t')
-plt.ylabel('Avg. profitability')
-plt.ylim(0, 1)
+plt.ylabel('Avg. optimality')
+plt.ylim(0, 1.5)
+plt.legend(loc='lower right')
 plt.show()
 #Printing average profitability across 10 learners and 10 different T
-'''
+
 
 '''
 # PRINTING for EACH period switching between players
@@ -386,7 +396,7 @@ print('optimality array single:', arr_opt)
 
 '''
 #OPTIMALITY BEREGNING
-pro, arr, arr1, Q_t, arr_opt = game( x, 500000, 0.3, 0.0000276306393827805, 0.95)
+pro, arr, arr1, Q_t, arr_opt, bla = game( x, 500000, 0.3, 0.0000276306393827805, 0.95)
 #hej = many_games(x, 500000, 0.3, 0.00002763, 3)
 #print('array with 1000 learners for 500000 periods:', hej)
 

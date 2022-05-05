@@ -1,3 +1,19 @@
+    Agendaen over andre agendaer: 
+
+    1. Kæmpe win - Numba virker og giver ca. 1000x speed-up. Hvor meget i dybden ift. datalogi skal vi gå med 
+
+    2. Kæmpe nedtur - Optimality spiller bare ikke - vi kan ikke få det til at give de resultater vi forventer, ofte >1, og altid 1 til sidst i runs...
+        Er det tid til at enten opgive? evt. finde en anden metric eller bare kun fokusere på profitability? 
+    
+    3. Punktforms rapport vedhæftet. Hvad syntes du? Kan vi begynde at skrive skrive? Mere matematik? mindre? Omfang? 
+    
+    
+
+
+
+    5. Fodnoter og citering. Skal man skrive "Klein (2021)", eller er [1] som refererer til references bagerst nok?
+        Fodnoter får også et tal, er det forvirrende? 
+    
     
     Endnu ny ny agenda: 
 
@@ -7,6 +23,12 @@
         Vi har prøvet forskellige restrictions på Q-learner - med svingende success.
 
     3. De store, lange runs er nok lige rundt om hjørnet. Hvor bør vi køre batch runs? eventuelt give Numba et skud til? 
+
+    4. Indholdsfortegnelse - nu skal vi til at skrive en del og vil gerne have input på strukturen so far. 
+
+    5. Fodnoter og citering. Skal man skrive "Klein (2021)", eller er [1] som refererer til references bagerst nok?
+        Fodnoter får også et tal, er det forvirrende?     
+
 
 
 

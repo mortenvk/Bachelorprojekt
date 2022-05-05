@@ -1,16 +1,18 @@
+from audioop import avg
 import random
 import numpy as np
 import matplotlib
 import numba
 import time
 
-from numba import jit
+from numba import jit, prange
+from numba import njit
 from matplotlib import pyplot as plt
 
 start_time = time.time()
 #random.seed(1235)
 #Demand function from Klein (2020)
-@jit
+@njit
 def demand(p1,p2):
         if p1 < p2:
             d = 1 - p1
@@ -21,23 +23,24 @@ def demand(p1,p2):
         return d
     
 #Price list, k= 6
-x = [0, 1/6, 2/6, 3/6, 4/6, 5/6, 1]
+x = np.array([0, 1/6, 2/6, 3/6, 4/6, 5/6, 1])
 
 #A player picking random prices
 #@numba.jit(nopython=True)
-@jit
+@njit
 def player1(prices): 
     a = np.random.choice(prices) 
     return a
 
 #A player picking random prices
-@jit
+@njit
 def player2(prices): 
     b = np.random.choice(len(prices)) 
     return b
 
 
 #A Q-learning player 
+@njit
 def player3(prices, Q, epsilon, p2):
     if random.uniform(0,1) < epsilon:
         p3 = int(np.random.choice(len(prices)))
@@ -48,6 +51,7 @@ def player3(prices, Q, epsilon, p2):
     return p3
 
 #A Q-learning player 
+@njit
 def player4(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = int(np.random.choice(len(prices)))
@@ -58,6 +62,7 @@ def player4(prices, Q, epsilon, prev):
     return p4
 
 #A restricted Q-learning player 
+@njit
 def player5(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = np.random.choice(len(prices))
@@ -71,6 +76,7 @@ def player5(prices, Q, epsilon, prev):
     return p4
 
 #A restricted Q-learning player 
+@njit
 def player6(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = np.random.choice(len(prices))
@@ -82,7 +88,7 @@ def player6(prices, Q, epsilon, prev):
     return p4
 
 #A tit for tat player
-@jit
+@njit
 def tit4tat(prev):
     pt = prev[0,1]
     return pt
@@ -94,7 +100,7 @@ def tit4tat(prev):
 
 
 #Function updating the Q table of a player. 
-#@jit
+@njit
 def update(Q, prev, alpha, delta, prices, indic):
     if indic == 1: 
         p1 = prices[prev[0,0]]
@@ -115,7 +121,7 @@ def update(Q, prev, alpha, delta, prices, indic):
 
 
 #Function determining profit
-@jit    
+@njit    
 def profit(pris1, pris2):
     return pris1*demand(pris1,pris2)
 
@@ -197,7 +203,7 @@ def t_opti(Q, Q2, lastp, prev1, prices, alpha, delta, theta, current_round):
 '''
 
 #Running a simulation of x periods with x prices and 2 players. 
-#@jit
+@njit
 def game(prices, periods, alpha, theta, delta):
     a = len(prices)
     Q_table = np.zeros((a, a))
@@ -206,7 +212,7 @@ def game(prices, periods, alpha, theta, delta):
     #print('CHECK', int(periods/2)-1, 'starting a run with ', periods, ' periods')
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
-    prev_p = np.zeros((2,2), dtype=int)
+    prev_p = np.zeros((2,2), dtype=numba.int64)
     prof_arr = np.zeros(int(periods-2))
     prof_arr2 = np.zeros(int(periods-2))
 
@@ -225,7 +231,7 @@ def game(prices, periods, alpha, theta, delta):
         
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, delta, prices,1)
-            p_i = player3(prices, Q_table, epsilon, int(prev_p[1,1]))
+            p_i = player3(prices, Q_table, epsilon, prev_p[1,1])
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
@@ -249,9 +255,9 @@ def game(prices, periods, alpha, theta, delta):
         else: 
             update(Q_table2, prev_p, alpha, delta, prices, 0)
             #p_j = tit4tat(prev_p)
-            p_j = player4(prices, Q_table2, epsilon, prev_p)
+            #p_j = player4(prices, Q_table2, epsilon, prev_p)
             #p_j = player2(prices)
-            #p_j = player5(prices, Q_table2, epsilon, prev_p)
+            p_j = player4(prices, Q_table2, epsilon, prev_p)
             #p_j = player6(prices, Q_table2, epsilon, prev_p)
             prev_p[1,0] = prev_p[1,1]
             prev_p[1,1] = p_j
@@ -264,6 +270,7 @@ def game(prices, periods, alpha, theta, delta):
             step_counter +=1
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
     #print ('B', b)
+    #print('q_table2', Q_table2)
     return prof_arr, p_ipriser, p_jpriser, Q_table, opt_arr, prof_arr2
 
 
@@ -281,95 +288,114 @@ def game(prices, periods, alpha, theta, delta):
 
 
 #simulating multiple runs and averaging profit
+#@njit
 def many_games(prices, periods, alpha, theta, learners,delta):
-    total_pro_arr = np.zeros((learners,periods-2),dtype=object)
-    total_pro_arr2 = np.zeros((learners,periods-2),dtype=object)
-    total_opt_arr = np.zeros((learners, 49), dtype = object)
-    for i in range(learners):
-        print('run #',i+1 ,'of ', learners , 'runs')
+    #total_pro_arr = np.zeros((learners,periods-2), dtype=np.ndarray)
+    #total_pro_arr2 = np.zeros((learners,periods-2), dtype=np.ndarray)
+    #total_opt_arr = np.zeros((learners, 49), dtype=np.ndarray)
+    print('run #',1 ,'of ', learners , 'runs') 
+    proi_out, arri, arr1i, Q_ti, arr_opt_i_out, proi_out2 = game(prices, periods, alpha, theta, delta)
+    for i in range(learners-1):
+        print('run #',i+2 ,'of ', learners , 'runs') 
         proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
-        total_pro_arr[i] = proi
-        total_pro_arr2[i] = proi2
-        total_opt_arr[i] = arr_opt_i
+
+        proi_out = np.vstack((proi_out, proi))
+        proi_out2 = np.vstack((proi_out2, proi2))
+        arr_opt_i_out = np.vstack((arr_opt_i_out, arr_opt_i))
+
+
+        
+        #total_pro_arr2[i] = proi2
+        #total_opt_arr[i] = arr_opt_i
         #print('profitability1',proi[-10:])
         #print('profitability1',proi2[-10:])
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
-    return total_pro_arr, total_opt_arr, total_pro_arr2
+    return proi_out, arr_opt_i_out, proi_out2
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 1, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 150, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 
-samlet_prof = many_profs.mean(0)
-samlet_prof2 = many_profs2.mean(0)
-samlet_opt = np.mean(many_opt,axis=0)
+
+print('starting mean calculation')
+meantime = time.time()
 
 
-'''
-# List of thetas corresponding to [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000]
-theta_list = [(0.0002763),0.000138145562602519,0.0000920991623314899, 0.0000690751669906070, 0.0000552605153133283 ,0.0000460506414965361 , 0.0000394721082643035, 0.0000345381799382402, 0.0000307006632982448, 0.0000276306393827805]
-    
-###
-#a random game with 500000 reps
+#Calculating the mean of profitability arrays and optimality
+#Can unfortunately not be optimized, as the axis argument is not supported for numba
+def prof_means(prof_arr1, prof_arr2, opt_arr):
+    return np.mean(prof_arr1, axis=0), np.mean(prof_arr2, axis=0), np.mean(opt_arr, axis=0)
 
-''' 
-''' 
-prof_arr, arr, arr1, q_table, bla, bla2 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
-print('profitability',prof_arr[-10:])
-t_arr1 = np.arange(0,499998,2)
-t_arr2 = np.arange(1,499999,2)
-print('pris1:', arr[-10:])
-print('priser2:', arr1[-10:])
+samlet_prof, samlet_prof2, samlet_opt_arr = prof_means(many_profs, many_profs2, many_opt)
 
-plt.plot(t_arr1,arr,'--o',label='Player 1', )
-plt.plot(t_arr2,arr1,'s--', label='Player 2')
-plt.xlabel("Time t")
-plt.ylabel("Price")
-plt.legend()
-plt.show()
-'''
+meanendtime = time.time()
+print('ending mean. time: ', (meanendtime - meantime))
+
+#samlet_prof2 = np.mean(many_profs2, axis=0)
+#samlet_opt = np.mean(many_opt,axis=0)
 
 window_size = 1000
   
-i = 0
+
 # Initialize an empty list to store moving averages
-moving_averages = []
-moving_averages2 = []
+
 # Loop through the array t o
 #consider every window of size 3
-while i < len(samlet_prof) - window_size + 1:
-  
-    # Calculate the average of current window
-    window_average = np.sum(samlet_prof[
-      i:i+window_size]) / window_size
-    window_average2 = np.sum(samlet_prof2[
-      i:i+window_size]) / window_size
-      
-    # Store the average of current
-    # window in moving average list
-    moving_averages.append(window_average)
-    moving_averages2.append(window_average2)
+print('starting moving avg')
+avgtime = time.time()
 
-      
-    # Shift window to right by one position
-    i += 1
-np.savetxt("1000runs.csv", moving_averages, delimiter = ',')
+
+#Function to calculate the moving average of profitability: 
+@njit
+def moving_avg(fst_arr, snd_arr, window_size):
+
+    moving_averages = []
+    moving_averages2 = []
+    i = 0
+    while i < len(fst_arr) - window_size + 1:
+    
+        # Calculate the average of current window
+        window_average = np.sum(fst_arr[
+        i:i+window_size]) / window_size
+        window_average2 = np.sum(snd_arr[
+        i:i+window_size]) / window_size
+        
+        # Store the average of current
+        # window in moving average list
+        moving_averages.append(window_average)
+        moving_averages2.append(window_average2)
+
+        
+        # Shift window to right by one position
+        i += 1
+    return moving_averages, moving_averages2
+
+
+profitability_arr, profitability_arr2 = moving_avg(samlet_prof, samlet_prof2, window_size)
+avg_timend = time.time()
+print('ending moving average. time: ', (avg_timend - avgtime))
+#np.savetxt("<file>.csv", moving_averages, delimiter = ',')
 #print(moving_averages)
+
+end_time = time.time()
+print('time:', end_time-start_time)
 
 t_arr1 = np.arange(0,498999)
 t_arr2 = np.arange(0,498999)
-plt.plot(t_arr1,moving_averages,'-',label='Player 1', )
-#plt.plot(t_arr2,moving_averages2,'-', label='Player 2')
-plt.axhline(y=0.125, color='k', linestyle = '-')
-plt.axhline(y=0.061, color='k', linestyle = '-')
-plt.xlabel("Time t")
+plt.plot(t_arr1,profitability_arr,'-',label='Q-learner')
+plt.plot(t_arr2,profitability_arr2,'-', label='Tit for tat')
+plt.axhline(y=0.125, color='k', linestyle = '--')
+plt.axhline(y=0.061, color='k', linestyle = '--')
+plt.xlabel("Time")
 plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
+
+
 
 ###
 #Plotting 2 simultaneous plots
@@ -397,6 +423,7 @@ ax2.set(ylim=(0.04,0.15))
 plt.legend()
 plt.show()
 '''
+
 '''
 plt.plot(samlet_opt, label="Average optimality")
 plt.xlabel('t')
@@ -404,36 +431,24 @@ plt.ylabel('Avg. optimality')
 plt.ylim(0, 1.5)
 plt.legend(loc='lower right')
 plt.show()
-#Printing average profitability across 10 learners and 10 different T
 '''
 
+
+# Printing prices for each player switching between players
 '''
-# PRINTING for EACH period switching between players
-pro, arr, arr1, Q_t, optimality_1 = game( x, 500000, 0.3, 0.0000276306393827805)
-t_arr1 = np.arange(249999)
-print('profitability:', pro)
-print('optimality player i:', optimality_1)
-print('q_table player i:', Q_t)
-plt.plot(t_arr1,arr,'-',label='Player 1', )
-plt.plot(t_arr1,arr1,'-', label='Player 2')
+prof_arr, arr, arr1, q_table, bla, bla2 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+print('profitability',prof_arr[-10:])
+t_arr1 = np.arange(0,499998,2)
+t_arr2 = np.arange(1,499999,2)
+print('pris1:', arr[-10:])
+print('priser2:', arr1[-10:])
+
+plt.plot(t_arr1,arr,'--o',label='Player 1', )
+plt.plot(t_arr2,arr1,'s--', label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Price")
-plt.legend()
+plt.legend(loc='upper right')
 plt.show()
-
-#print('HEY! final profitablity arr: ', pro_print)'''
-'''bla, p1_prices, p2_prices, basd, jsdhf, prof_arr1 = game( x, 100000, 0.3, 0.0001381)
-t_arr = np.arange(0, )
-
-plt.plot(t_arr,prof_arr1,label='Player 1')
-#plt.plot(t_arr,p2_prices, label='Player 2')
-plt.xlabel("Time t")
-plt.ylabel("Price")
-plt.legend()
-plt.show()'''
-'''
-pro, arr, arr1, Q_t, arr_opt = game( x, 500000, 0.3, 0.0000276306393827805, 0.95)
-print('optimality array single:', arr_opt)
 '''
 
 
@@ -456,5 +471,3 @@ plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.show()
 '''
-end_time = time.time()
-print('time:', end_time-start_time)

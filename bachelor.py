@@ -299,7 +299,7 @@ def many_games(prices, periods, alpha, theta, learners,delta):
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 1000, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 1, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 

@@ -40,7 +40,7 @@ def player2(prices):
 
 
 #A Q-learning player 
-@njit
+@jit
 def player3(prices, Q, epsilon, p2):
     if random.uniform(0,1) < epsilon:
         p3 = int(np.random.choice(len(prices)))
@@ -51,7 +51,7 @@ def player3(prices, Q, epsilon, p2):
     return p3
 
 #A Q-learning player 
-@njit
+@jit
 def player4(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = int(np.random.choice(len(prices)))
@@ -202,6 +202,8 @@ def t_opti(Q, Q2, lastp, prev1, prices, alpha, delta, theta, current_round):
             
 '''
 
+
+
 #Running a simulation of x periods with x prices and 2 players. 
 @njit
 def game(prices, periods, alpha, theta, delta):
@@ -270,8 +272,10 @@ def game(prices, periods, alpha, theta, delta):
             step_counter +=1
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
     #print ('B', b)
+    
     #print('q_table2', Q_table2)
     return prof_arr, p_ipriser, p_jpriser, Q_table, opt_arr, prof_arr2
+
 
 
 #@numba.jit(nopython=True)     
@@ -289,6 +293,7 @@ def game(prices, periods, alpha, theta, delta):
 
 #simulating multiple runs and averaging profit
 #@njit
+''''
 def many_games(prices, periods, alpha, theta, learners,delta):
     #total_pro_arr = np.zeros((learners,periods-2), dtype=np.ndarray)
     #total_pro_arr2 = np.zeros((learners,periods-2), dtype=np.ndarray)
@@ -301,10 +306,7 @@ def many_games(prices, periods, alpha, theta, learners,delta):
 
         proi_out = np.vstack((proi_out, proi))
         proi_out2 = np.vstack((proi_out2, proi2))
-        arr_opt_i_out = np.vstack((arr_opt_i_out, arr_opt_i))
-
-
-        
+        arr_opt_i_out = np.vstack((arr_opt_i_out, arr_opt_i)) 
         #total_pro_arr2[i] = proi2
         #total_opt_arr[i] = arr_opt_i
         #print('profitability1',proi[-10:])
@@ -312,14 +314,49 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
     return proi_out, arr_opt_i_out, proi_out2
+'''
+
+def many_games(prices, periods, alpha, theta, learners,delta):
+    total_pro_arr = np.zeros((learners,periods-2),dtype=object)
+    total_pro_arr2 = np.zeros((learners,periods-2),dtype=object)
+    total_opt_arr = np.zeros((learners, 49), dtype = object)
+    for i in range(learners):
+        print('run #',i+1 ,'of ', learners , 'runs')
+        proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
+        total_pro_arr[i] = proi
+        total_pro_arr2[i] = proi2
+        total_opt_arr[i] = arr_opt_i
+        #print('profitability1',proi[-10:])
+        #print('profitability1',proi2[-10:])
+        #print('pris1:', arri[-10:])
+        #print('priser2:', arr1i[-10:])
+    return total_pro_arr, total_opt_arr, total_pro_arr2
+
+def end_prof(p1_prof, p2_prof):
+    end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
+    end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
+    
+    return end_prof1, end_prof2
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 500, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 200, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 
+firm1, firm2 = end_prof(many_profs, many_profs2)
 
+
+heatmap, xedges, yedges = np.histogram2d(firm1, firm2, bins=12)
+extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+
+plt.clf()
+plt.imshow(heatmap.T, extent=extent, origin='lower')
+cb = plt.colorbar()
+cb.set_label('profit')
+plt.show()
+##ax = sns.heatmap((firm1, firm2), linewidth=0.5)
+#plt.show()
 print('starting mean calculation')
 meantime = time.time()
 
@@ -349,7 +386,7 @@ avgtime = time.time()
 
 
 #Function to calculate the moving average of profitability: 
-@njit
+#@njit
 def moving_avg(fst_arr, snd_arr, window_size):
 
     moving_averages = []
@@ -385,8 +422,8 @@ print('time:', end_time-start_time)
 
 t_arr1 = np.arange(0,498999)
 t_arr2 = np.arange(0,498999)
-plt.plot(t_arr1,profitability_arr,'-',label='Q-learner')
-plt.plot(t_arr2,profitability_arr2,'-', label='Tit for tat')
+plt.plot(t_arr1,profitability_arr,'-',label='Firm 1')
+plt.plot(t_arr2,profitability_arr2,'-', label='Firm 2')
 plt.axhline(y=0.125, color='k', linestyle = '--')
 plt.axhline(y=0.061, color='k', linestyle = '--')
 plt.xlabel("Time")

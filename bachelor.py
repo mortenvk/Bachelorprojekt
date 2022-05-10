@@ -93,7 +93,25 @@ def tit4tat(prev):
     pt = prev[0,1]
     return pt
 
-
+@njit
+def gamma_player(prices, Q, epsilon, prev):
+    if random.uniform(0,1) < epsilon:
+        p4 = np.random.choice(len(prices))
+        #print('now its random', epsilon)
+        if p4 == len(prices)-1:
+            p4 -= 1
+        elif p4 == 0:
+            p4 = p4 + 1
+    else:
+        p4 = np.argmax(Q[:,prev[0,1]])
+        if p4 == len(prices)-1:
+            p4 -= 1
+        elif p4 == 0:
+            p4 = p4 + 1  
+    return p4
+        
+        
+            
 
 
 
@@ -117,8 +135,15 @@ def update(Q, prev, alpha, delta, prices, indic):
         pe2 = Q[prev[1,0],prev[0,0]]
         ne2 = p1*demand(p1,p2) + delta* p1*demand(p1,p22) + delta**2 * Q[np.argmax(Q[:,prev[0,1]]),prev[0,1]]
         Q[prev[1,0], prev[0,0]] = (1-alpha) * pe2 + alpha * ne2
-    
-
+        
+@njit
+def present_update(Q, prev, alpha, prices):
+    p1 = prices[prev[1,0]]
+    p2 = prices[prev[0,0]]
+    p22 = prices[prev[0,1]]
+    pe2 = Q[prev[1,0],prev[0,0]]
+    ne2 = p1*demand(p1,p2)  
+    Q[prev[1,0], prev[0,0]] = (1-alpha) * pe2 + alpha * ne2
 
 #Function determining profit
 @njit    
@@ -256,10 +281,12 @@ def game(prices, periods, alpha, theta, delta):
       
         else: 
             update(Q_table2, prev_p, alpha, delta, prices, 0)
+            #present_update(Q_table2, prev_p, alpha, prices)
             #p_j = tit4tat(prev_p)
-            #p_j = player4(prices, Q_table2, epsilon, prev_p)
-            #p_j = player2(prices)
             p_j = player4(prices, Q_table2, epsilon, prev_p)
+            #p_j = player2(prices)
+            #p_j = player6(prices, Q_table2, epsilon, prev_p)
+            #p_j = gamma_player(prices, Q_table2, epsilon, prev_p)
             #p_j = player6(prices, Q_table2, epsilon, prev_p)
             prev_p[1,0] = prev_p[1,1]
             prev_p[1,1] = p_j
@@ -274,7 +301,7 @@ def game(prices, periods, alpha, theta, delta):
     #print ('B', b)
     
     #print('q_table2', Q_table2)
-    return prof_arr, p_ipriser, p_jpriser, Q_table, opt_arr, prof_arr2
+    return prof_arr, p_ipriser, p_jpriser, Q_table2, opt_arr, prof_arr2
 
 
 
@@ -293,28 +320,6 @@ def game(prices, periods, alpha, theta, delta):
 
 #simulating multiple runs and averaging profit
 #@njit
-''''
-def many_games(prices, periods, alpha, theta, learners,delta):
-    #total_pro_arr = np.zeros((learners,periods-2), dtype=np.ndarray)
-    #total_pro_arr2 = np.zeros((learners,periods-2), dtype=np.ndarray)
-    #total_opt_arr = np.zeros((learners, 49), dtype=np.ndarray)
-    print('run #',1 ,'of ', learners , 'runs') 
-    proi_out, arri, arr1i, Q_ti, arr_opt_i_out, proi_out2 = game(prices, periods, alpha, theta, delta)
-    for i in range(learners-1):
-        print('run #',i+2 ,'of ', learners , 'runs') 
-        proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
-
-        proi_out = np.vstack((proi_out, proi))
-        proi_out2 = np.vstack((proi_out2, proi2))
-        arr_opt_i_out = np.vstack((arr_opt_i_out, arr_opt_i)) 
-        #total_pro_arr2[i] = proi2
-        #total_opt_arr[i] = arr_opt_i
-        #print('profitability1',proi[-10:])
-        #print('profitability1',proi2[-10:])
-        #print('pris1:', arri[-10:])
-        #print('priser2:', arr1i[-10:])
-    return proi_out, arr_opt_i_out, proi_out2
-'''
 
 def many_games(prices, periods, alpha, theta, learners,delta):
     total_pro_arr = np.zeros((learners,periods-2),dtype=object)
@@ -340,7 +345,7 @@ def end_prof(p1_prof, p2_prof):
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 200, 0.95)
+many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 1000, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 
@@ -357,6 +362,8 @@ cb.set_label('profit')
 plt.show()
 ##ax = sns.heatmap((firm1, firm2), linewidth=0.5)
 #plt.show()
+
+
 print('starting mean calculation')
 meantime = time.time()
 
@@ -472,8 +479,9 @@ plt.show()
 
 
 # Printing prices for each player switching between players
-'''
+
 prof_arr, arr, arr1, q_table, bla, bla2 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+print('  Q TABLE 2', q_table)
 print('profitability',prof_arr[-10:])
 t_arr1 = np.arange(0,499998,2)
 t_arr2 = np.arange(1,499999,2)
@@ -486,7 +494,7 @@ plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend(loc='upper right')
 plt.show()
-'''
+
 
 
 '''
@@ -507,4 +515,29 @@ plt.plot(t_arr,arr1, label='Player 2')
 plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.show()
+'''
+
+
+#old many_games, where np.vstack slowed everything down considerably
+''''
+def many_games(prices, periods, alpha, theta, learners,delta):
+    #total_pro_arr = np.zeros((learners,periods-2), dtype=np.ndarray)
+    #total_pro_arr2 = np.zeros((learners,periods-2), dtype=np.ndarray)
+    #total_opt_arr = np.zeros((learners, 49), dtype=np.ndarray)
+    print('run #',1 ,'of ', learners , 'runs') 
+    proi_out, arri, arr1i, Q_ti, arr_opt_i_out, proi_out2 = game(prices, periods, alpha, theta, delta)
+    for i in range(learners-1):
+        print('run #',i+2 ,'of ', learners , 'runs') 
+        proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
+
+        proi_out = np.vstack((proi_out, proi))
+        proi_out2 = np.vstack((proi_out2, proi2))
+        arr_opt_i_out = np.vstack((arr_opt_i_out, arr_opt_i)) 
+        #total_pro_arr2[i] = proi2
+        #total_opt_arr[i] = arr_opt_i
+        #print('profitability1',proi[-10:])
+        #print('profitability1',proi2[-10:])
+        #print('pris1:', arri[-10:])
+        #print('priser2:', arr1i[-10:])
+    return proi_out, arr_opt_i_out, proi_out2
 '''

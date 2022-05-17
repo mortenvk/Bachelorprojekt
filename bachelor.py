@@ -6,7 +6,7 @@ import numba
 import time
 
 from numba import jit, prange
-from numba import njit
+from numba import config, njit, threading_layer, set_num_threads
 from matplotlib import pyplot as plt
 
 start_time = time.time()
@@ -230,7 +230,7 @@ def t_opti(Q, Q2, lastp, prev1, prices, alpha, delta, theta, current_round):
 
 
 #Running a simulation of x periods with x prices and 2 players. 
-@njit
+@jit(nopython=True)
 def game(prices, periods, alpha, theta, delta):
     a = len(prices)
     Q_table = np.zeros((a, a))
@@ -253,6 +253,11 @@ def game(prices, periods, alpha, theta, delta):
     step_counter = 0
     opt_arr = np.zeros(int(periods/2/5000-1))
     b = 0
+    unchanged = 0
+    change1 = np.zeros(len(prices))
+    change2 = np.zeros(len(prices))
+    temp_br1 = np.zeros(len(prices))
+    temp_br2 = np.zeros(len(prices))
     for t in range(t, periods+1):
         epsilon = (1-theta)**t
         
@@ -297,11 +302,28 @@ def game(prices, periods, alpha, theta, delta):
             prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[p_j])
             prof_arr2[t-3] = profit(prices[p_j], prices[prev_p[0,1]])
             step_counter +=1
+            
+        if t == 400000:
+            for i in range(len(prices)):
+                change1[i] = int(np.argmax(Q_table[:,i]))
+                change2[i] = int(np.argmax(Q_table2[:,i]))
+        elif t > 400000:
+            for i in range(len(prices)):
+                temp_br1[i] = int(np.argmax(Q_table[:,i]))
+                temp_br2[i] = int(np.argmax(Q_table2[:,i]))
+            if (np.array_equal(temp_br1,change1) == False) or (np.array_equal(temp_br2,change2) == False):
+                unchanged = 1
+                #print('first check', (np.array_equal(temp_br1,change1) == False), temp_br1, change1)
+                #print('second check',(np.array_equal(temp_br2,change2) == False), temp_br2, change2)
+                
+    print('argmax arrays', temp_br1, change1,(np.array_equal(temp_br1,change1) == False) )
+    print('argmax arrays', temp_br2, change2, (np.array_equal(temp_br2,change2) == False))
+                
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
     #print ('B', b)
     
     #print('q_table2', Q_table2)
-    return prof_arr, p_ipriser, p_jpriser, Q_table2, opt_arr, prof_arr2
+    return prof_arr, p_ipriser, p_jpriser, Q_table2, opt_arr, prof_arr2, unchanged
 
 
 
@@ -320,38 +342,54 @@ def game(prices, periods, alpha, theta, delta):
 
 #simulating multiple runs and averaging profit
 #@njit
-
 def many_games(prices, periods, alpha, theta, learners,delta):
-    total_pro_arr = np.zeros((learners,periods-2),dtype=object)
-    total_pro_arr2 = np.zeros((learners,periods-2),dtype=object)
-    total_opt_arr = np.zeros((learners, 49), dtype = object)
+    total_pro_arr = np.zeros((learners,periods-2),dtype=np.ndarray)
+    total_pro_arr2 = np.zeros((learners,periods-2),dtype=np.ndarray)
+    total_opt_arr = np.zeros((learners, 49), dtype = np.ndarray)
+    avg_profit = np.zeros(learners)
+    avg_profit2 = np.zeros(learners)
+    change_arr = np.zeros(learners)
     for i in range(learners):
         print('run #',i+1 ,'of ', learners , 'runs')
-        proi, arri, arr1i, Q_ti, arr_opt_i, proi2 = game(prices, periods, alpha, theta, delta)
+        proi, arri, arr1i, Q_ti, arr_opt_i, proi2, changes = game(prices, periods, alpha, theta, delta)
         total_pro_arr[i] = proi
         total_pro_arr2[i] = proi2
         total_opt_arr[i] = arr_opt_i
+        avg_profit[i] = np.mean(proi[-10000:])
+        avg_profit2[i] = np.mean(proi2[-10000:])
+        change_arr[i] = changes
+        #print('avg profit firm 1 & 2', avg_profit, avg_profit2, 'længde', len(avg_profit2))
         #print('profitability1',proi[-10:])
         #print('profitability1',proi2[-10:])
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
-    return total_pro_arr, total_opt_arr, total_pro_arr2
+    return total_pro_arr, total_opt_arr, total_pro_arr2, avg_profit, avg_profit2, change_arr
 
-def end_prof(p1_prof, p2_prof):
-    end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
-    end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
+
+
+def delta_prof(avg_array1, avg_array2):
+    together_array = np.vstack((avg_array1, avg_array2))
+    together_array = np.mean(together_array, axis=0)
+    delta_1 = np.zeros(len(together_array))
+    for i in range(len(together_array)):
+        delta_1[i] = ((together_array[i]) / (0.125))
+    return delta_1
     
-    return end_prof1, end_prof2
 
 
 
-many_profs, many_opt, many_profs2 = many_games(x, 500000, 0.3, 0.0000276306393827805, 1000, 0.95)
+many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes = many_games(x, 500000, 0.3, 0.0000276306393827805, 100, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
+#firm1, firm2 = end_prof(many_profs, many_profs2)
+delta_done1= delta_prof(delta_arr, delta_arr2)
+print(delta_done1[-10:])
 
-firm1, firm2 = end_prof(many_profs, many_profs2)
+plt.plot(change_yes, '.', label = 'Convergence')
+#plt.plot(delta_done1, '.', label = 'collective delta')
+plt.show()
 
-
+'''
 heatmap, xedges, yedges = np.histogram2d(firm1, firm2, bins=12)
 extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
@@ -362,7 +400,7 @@ cb.set_label('profit')
 plt.show()
 ##ax = sns.heatmap((firm1, firm2), linewidth=0.5)
 #plt.show()
-
+'''
 
 print('starting mean calculation')
 meantime = time.time()
@@ -370,7 +408,7 @@ meantime = time.time()
 
 #Calculating the mean of profitability arrays and optimality
 #Can unfortunately not be optimized, as the axis argument is not supported for numba
-def prof_means(prof_arr1, prof_arr2, opt_arr):
+def prof_means(prof_arr1, prof_arr2, opt_arr, ):
     return np.mean(prof_arr1, axis=0), np.mean(prof_arr2, axis=0), np.mean(opt_arr, axis=0)
 
 samlet_prof, samlet_prof2, samlet_opt_arr = prof_means(many_profs, many_profs2, many_opt)
@@ -480,14 +518,15 @@ plt.show()
 
 # Printing prices for each player switching between players
 
-prof_arr, arr, arr1, q_table, bla, bla2 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+prof_arr, arr, arr1, q_table, bla, bla2, bl3 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+
 print('  Q TABLE 2', q_table)
 print('profitability',prof_arr[-10:])
 t_arr1 = np.arange(0,499998,2)
 t_arr2 = np.arange(1,499999,2)
 print('pris1:', arr[-10:])
 print('priser2:', arr1[-10:])
-
+print(type(prof_arr))
 plt.plot(t_arr1,arr,'--o',label='Player 1', )
 plt.plot(t_arr2,arr1,'s--', label='Player 2')
 plt.xlabel("Time t")
@@ -540,4 +579,15 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
     return proi_out, arr_opt_i_out, proi_out2
+'''
+
+#OUTFASED PROF CALCULATIONS
+'''
+def end_prof(p1_prof, p2_prof, avg_array1, avg_array2):
+    end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
+    end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
+    together_array = np.vstack((avg_array1, avg_array2))
+    together_array = np.mean(together_array, axis=0)
+    
+    return end_prof1, end_prof2, together_array
 '''

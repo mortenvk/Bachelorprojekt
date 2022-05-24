@@ -302,7 +302,7 @@ def game(prices, periods, alpha, theta, delta):
             prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[p_j])
             prof_arr2[t-3] = profit(prices[p_j], prices[prev_p[0,1]])
             step_counter +=1
-            
+        '''     
         if t == 400000:
             for i in range(len(prices)):
                 change1[i] = int(np.argmax(Q_table[:,i]))
@@ -315,7 +315,7 @@ def game(prices, periods, alpha, theta, delta):
                 unchanged = 1
                 #print('first check', (np.array_equal(temp_br1,change1) == False), temp_br1, change1)
                 #print('second check',(np.array_equal(temp_br2,change2) == False), temp_br2, change2)
-                
+        '''        
     print('argmax arrays', temp_br1, change1,(np.array_equal(temp_br1,change1) == False) )
     print('argmax arrays', temp_br2, change2, (np.array_equal(temp_br2,change2) == False))
                 
@@ -366,7 +366,6 @@ def many_games(prices, periods, alpha, theta, learners,delta):
     return total_pro_arr, total_opt_arr, total_pro_arr2, avg_profit, avg_profit2, change_arr
 
 
-
 def delta_prof(avg_array1, avg_array2):
     together_array = np.vstack((avg_array1, avg_array2))
     together_array = np.mean(together_array, axis=0)
@@ -378,17 +377,36 @@ def delta_prof(avg_array1, avg_array2):
 
 
 
-many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes = many_games(x, 500000, 0.3, 0.0000276306393827805, 100, 0.95)
+#Function needed to determine the profit of the last 1000 runs - heatmap
+def end_prof(p1_prof, p2_prof, avg_array1, avg_array2):
+    end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
+    end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
+    together_array = np.vstack((avg_array1, avg_array2))
+    together_array = np.mean(together_array, axis=0)
+    
+    return end_prof1, end_prof2, together_array
+
+
+many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes = many_games(x, 500000, 0.3, 0.0000276306393827805, 1000, 0.95)
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 #firm1, firm2 = end_prof(many_profs, many_profs2)
 delta_done1= delta_prof(delta_arr, delta_arr2)
 print(delta_done1[-10:])
+unique, counts = np.unique(change_yes, return_counts=True)
+print(np.asarray((unique, counts)).T)
 
+
+#code to plot convergence of the runs 
+'''
 plt.plot(change_yes, '.', label = 'Convergence')
+
+print()
 #plt.plot(delta_done1, '.', label = 'collective delta')
 plt.show()
+'''
 
+#Heatmap very similar to Klein heatmap
 '''
 heatmap, xedges, yedges = np.histogram2d(firm1, firm2, bins=12)
 extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
@@ -466,6 +484,7 @@ end_time = time.time()
 print('time:', end_time-start_time)
 
 t_arr1 = np.arange(0,498999)
+'''
 t_arr2 = np.arange(0,498999)
 plt.plot(t_arr1,profitability_arr,'-',label='Firm 1')
 plt.plot(t_arr2,profitability_arr2,'-', label='Firm 2')
@@ -476,8 +495,18 @@ plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
+'''
 
+combi_arr = np.mean((np.vstack((profitability_arr, profitability_arr2))), axis=0)
 
+plt.plot(t_arr1,combi_arr,'-',label='Average profit')
+plt.axhline(y=0.125, color='k', linestyle = '--')
+plt.axhline(y=0.0611, color='k', linestyle = '--')
+plt.xlabel("Time")
+plt.ylabel("Profitability")
+plt.ylim(0.00,0.15)
+plt.legend()
+plt.show()
 
 ###
 #Plotting 2 simultaneous plots
@@ -579,15 +608,4 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
     return proi_out, arr_opt_i_out, proi_out2
-'''
-
-#OUTFASED PROF CALCULATIONS
-'''
-def end_prof(p1_prof, p2_prof, avg_array1, avg_array2):
-    end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
-    end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
-    together_array = np.vstack((avg_array1, avg_array2))
-    together_array = np.mean(together_array, axis=0)
-    
-    return end_prof1, end_prof2, together_array
 '''

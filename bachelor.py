@@ -5,7 +5,7 @@ import numba
 import time
 import multiprocessing as mp
 from numba import jit, prange
-from numba import config, njit, threading_layer, set_num_threads
+from numba import config, njit, threading_layer
 from matplotlib import pyplot as plt
 
 start_time = time.time()
@@ -260,10 +260,15 @@ def game(prices, periods, alpha, theta, delta):
     temp_br2 = np.zeros(len(prices))
     for t in range(t, periods+1):
         epsilon = (1-theta)**t
-        
+    
         if t % 2 != 0: 
             update(Q_table, prev_p, alpha, delta, prices,1)
             p_i = player3(prices, Q_table, epsilon, prev_p[1,1])
+            #forced deviation
+            if t == 485001 and np.all(prev_p == 3): 
+                print('im deviating!!!')
+                p_i = prev_p[1,1]-1
+                unchanged = 1
             prev_p[0,0] = prev_p[0,1]
             prev_p[0,1] = p_i
             prev_p[1,0] = prev_p[1,1]
@@ -316,6 +321,8 @@ def game(prices, periods, alpha, theta, delta):
                 #print('first check', (np.array_equal(temp_br1,change1) == False), temp_br1, change1)
                 #print('second check',(np.array_equal(temp_br2,change2) == False), temp_br2, change2)
         '''        
+    #print('argmax arrays', temp_br1, change1,(np.array_equal(temp_br1,change1) == False) )
+    #print('argmax arrays', temp_br2, change2, (np.array_equal(temp_br2,change2) == False))
                 
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
     #print ('B', b)
@@ -346,7 +353,8 @@ def many_games(prices, periods, alpha, theta, learners,delta):
     total_opt_arr = np.zeros((learners, 49), dtype = np.ndarray)
     avg_profit = np.zeros(learners)
     avg_profit2 = np.zeros(learners)
-    change_arr = np.zeros(learners)
+    change_arr = np.zeros((1,25))
+    change_arr2 = np.zeros((1,25))
     for i in range(learners):
         print('run #',i+1 ,'of ', learners , 'runs')
         proi, arri, arr1i, Q_ti, arr_opt_i, proi2, changes = game(prices, periods, alpha, theta, delta)
@@ -355,13 +363,17 @@ def many_games(prices, periods, alpha, theta, learners,delta):
         total_opt_arr[i] = arr_opt_i
         avg_profit[i] = np.mean(proi[-10000:])
         avg_profit2[i] = np.mean(proi2[-10000:])
-        change_arr[i] = changes
+        print('changes=', changes)
+        if changes == 1:
+            print('Her er proi i udvalgte', proi[484991:485016:1]) 
+            change_arr = np.vstack((change_arr, proi[484991:485016:1]))
+            change_arr2 = np.vstack((change_arr2, proi2[484991:485016:1]))
         #print('avg profit firm 1 & 2', avg_profit, avg_profit2, 'længde', len(avg_profit2))
         #print('profitability1',proi[-10:])
         #print('profitability1',proi2[-10:])
         #print('pris1:', arri[-10:])
         #print('priser2:', arr1i[-10:])
-    return total_pro_arr, total_opt_arr, total_pro_arr2, avg_profit, avg_profit2, change_arr
+    return total_pro_arr, total_opt_arr, total_pro_arr2, avg_profit, avg_profit2, change_arr, change_arr2
 
 
 def delta_prof(avg_array1, avg_array2):
@@ -376,15 +388,24 @@ def delta_prof(avg_array1, avg_array2):
 
 
 #Function needed to determine the profit of the last 1000 runs - heatmap
-def end_prof(p1_prof, p2_prof, avg_array1, avg_array2):
+def end_prof(p1_prof, p2_prof):
     end_prof1 = np.mean(np.array(([i[-1000:] for i in p1_prof])), axis=1)
     end_prof2 = np.mean(np.array(([i[-1000:] for i in p2_prof])), axis=1)
-    together_array = np.vstack((avg_array1, avg_array2))
-    together_array = np.mean(together_array, axis=0)
     
-    return end_prof1, end_prof2, together_array
+    return end_prof1, end_prof2, 
 
 
+many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes, change_yes2= many_games(x, 500000, 0.3, 0.0000276306393827805, 10, 0.95)
+#print('multi-dim prof', many_profs)
+#print('many_opt:',many_opt)
+print('efter many_profs og str på arr er:', np.size(change_yes))
+dev_arr = np.mean(change_yes, axis=0)
+dev_arr2 = np.mean(change_yes2, axis=0)
+firm1, firm2 = end_prof(many_profs, many_profs2,)
+delta_done1= delta_prof(delta_arr, delta_arr2)
+print(delta_done1[-10:])
+unique, counts = np.unique(change_yes, return_counts=True)
+print(np.asarray((unique, counts)).T)
 print('initiating run calculations')
 attempt_time = time.time()
 
@@ -456,20 +477,22 @@ plt.title('Frequency of Delta-values')
 plt.hist(delta_done1,[0.5, 0.6, 0.7, 0.8, 0.9, 1])
 plt.show()
 '''
-#Heatmap very similar to Klein heatmap
 '''
-heatmap, xedges, yedges = np.histogram2d(firm1, firm2, bins=12)
+#Heatmap very similar to Klein heatmap
+heatmap, xedges, yedges = np.histogram2d(firm1, firm2)
 extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+#extent = [0, 0.15, 0, 0.15]
 
 plt.clf()
-plt.imshow(heatmap.T, extent=extent, origin='lower')
+plt.imshow(heatmap.T, extent=extent, origin='lower',cmap='Blues')
 cb = plt.colorbar()
-cb.set_label('profit')
+plt.xlabel("Firm 1")
+plt.ylabel("Firm 2")
 plt.show()
 ##ax = sns.heatmap((firm1, firm2), linewidth=0.5)
 #plt.show()
 '''
-
+'''
 print('starting mean calculation')
 meantime = time.time()
 
@@ -479,7 +502,7 @@ meantime = time.time()
 def prof_means(prof_arr1, prof_arr2):
     return np.mean(prof_arr1, axis=0), np.mean(prof_arr2, axis=0)
 
-samlet_prof, samlet_prof2 = prof_means(many_profs, many_profs2)
+samlet_prof, samlet_prof2= prof_means(many_profs, many_profs2)
 
 meanendtime = time.time()
 print('ending mean. time: ', (meanendtime - meantime))
@@ -497,7 +520,7 @@ window_size = 1000
 print('starting moving avg')
 avgtime = time.time()
 
-
+'''
 #Function to calculate the moving average of profitability: 
 #@njit
 def moving_avg(fst_arr, snd_arr, window_size):
@@ -523,7 +546,23 @@ def moving_avg(fst_arr, snd_arr, window_size):
         i += 1
     return moving_averages, moving_averages2
 
+print('starting moving averages')
+deviation_arr, deviation_arr2 = moving_avg(dev_arr, dev_arr2, 2)
 
+deviation_t = np.arange(484994,485018, 2)
+deviation_t2 = np.arange(484995,485019, 2)
+deviation_arr = deviation_arr[0:24:2]
+deviation_arr2 = deviation_arr2[1:25:2]
+plt.plot(deviation_t, deviation_arr, '--o', label='Firm 1 (Deviator)')
+plt.plot(deviation_t2, deviation_arr2, 's--', label='Firm 2')
+plt.vlines(x=485000, ymin=0.00, ymax=0.2, linestyle = '--')
+plt.xlabel("Period around deviation")
+plt.ylabel("Avg. profit")
+plt.ylim(0.00,0.2)
+plt.legend()
+plt.show()
+
+'''
 profitability_arr, profitability_arr2 = moving_avg(samlet_prof, samlet_prof2, window_size)
 avg_timend = time.time()
 print('ending moving average. time: ', (avg_timend - avgtime))
@@ -534,6 +573,8 @@ end_time = time.time()
 print('time:', end_time-start_time)
 
 t_arr1 = np.arange(0,498999)
+'''
+'''
 
 t_arr2 = np.arange(0,498999)
 fig, ax = plt.subplots(figsize =(5.75, 2.6))
@@ -546,6 +587,8 @@ plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
+'''
+'''
 
 print('avg prof of unrestricted Q-learner',np.mean(profitability_arr[-1000]))
 print('avg profitabilty of sticky man', np.mean(profitability_arr2[-1000]))
@@ -561,6 +604,7 @@ plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
+'''
 
 print('avg profitabilty of both unrestricted and sticky', np.mean(combi_arr[-1000]))
 

@@ -1,10 +1,9 @@
-from audioop import avg
 import random
 import numpy as np
 import matplotlib
 import numba
 import time
-
+import multiprocessing as mp
 from numba import jit, prange
 from numba import config, njit, threading_layer, set_num_threads
 from matplotlib import pyplot as plt
@@ -24,6 +23,7 @@ def demand(p1,p2):
     
 #Price list, k= 6
 x = np.array([0, 1/6, 2/6, 3/6, 4/6, 5/6, 1])
+#x_cost = np.array([1, (1+1/6), (1+ 2/6), (1+ 3/6), (1+ 4/6), (1+ 5/6), (1+ 1)])
 
 #A player picking random prices
 #@numba.jit(nopython=True)
@@ -40,7 +40,7 @@ def player2(prices):
 
 
 #A Q-learning player 
-@jit
+@njit
 def player3(prices, Q, epsilon, p2):
     if random.uniform(0,1) < epsilon:
         p3 = int(np.random.choice(len(prices)))
@@ -51,7 +51,7 @@ def player3(prices, Q, epsilon, p2):
     return p3
 
 #A Q-learning player 
-@jit
+@njit
 def player4(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
         p4 = int(np.random.choice(len(prices)))
@@ -75,7 +75,7 @@ def player5(prices, Q, epsilon, prev):
             p4 = p4 + 1
     return p4
 
-#A restricted Q-learning player 
+#A sticky price restricted Q-learning player 
 @njit
 def player6(prices, Q, epsilon, prev):
     if random.uniform(0,1) < epsilon:
@@ -230,7 +230,7 @@ def t_opti(Q, Q2, lastp, prev1, prices, alpha, delta, theta, current_round):
 
 
 #Running a simulation of x periods with x prices and 2 players. 
-@jit(nopython=True)
+@njit
 def game(prices, periods, alpha, theta, delta):
     a = len(prices)
     Q_table = np.zeros((a, a))
@@ -239,7 +239,7 @@ def game(prices, periods, alpha, theta, delta):
     #print('CHECK', int(periods/2)-1, 'starting a run with ', periods, ' periods')
     p_ipriser =np.zeros(int(periods/2)-1)
     p_jpriser =np.zeros(int(periods/2)-1)
-    prev_p = np.zeros((2,2), dtype=numba.int64)
+    prev_p = np.zeros((2,2),dtype=numba.int64)
     prof_arr = np.zeros(int(periods-2))
     prof_arr2 = np.zeros(int(periods-2))
 
@@ -301,7 +301,7 @@ def game(prices, periods, alpha, theta, delta):
             #print('Spiller 2 tur: p:', prices[p_j], 'p_i', prices[prev_p[0,1]],' iteration: ', t,'Q_table2: \n', Q_table2)
             prof_arr[t-3] = profit(prices[prev_p[0,1]], prices[p_j])
             prof_arr2[t-3] = profit(prices[p_j], prices[prev_p[0,1]])
-            step_counter +=1
+            #step_counter +=1
         '''     
         if t == 400000:
             for i in range(len(prices)):
@@ -316,8 +316,6 @@ def game(prices, periods, alpha, theta, delta):
                 #print('first check', (np.array_equal(temp_br1,change1) == False), temp_br1, change1)
                 #print('second check',(np.array_equal(temp_br2,change2) == False), temp_br2, change2)
         '''        
-    print('argmax arrays', temp_br1, change1,(np.array_equal(temp_br1,change1) == False) )
-    print('argmax arrays', temp_br2, change2, (np.array_equal(temp_br2,change2) == False))
                 
     #optimality = opti(Q_table, p_j, p_i, prices, alpha, 0.95)
     #print ('B', b)
@@ -387,25 +385,77 @@ def end_prof(p1_prof, p2_prof, avg_array1, avg_array2):
     return end_prof1, end_prof2, together_array
 
 
-many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes = many_games(x, 500000, 0.3, 0.0000276306393827805, 1000, 0.95)
+print('initiating run calculations')
+attempt_time = time.time()
+
+many_profs, many_opt, many_profs2, delta_arr, delta_arr2, change_yes =  many_games(x, 500000, 0.3, 0.0000276306393827805, 10, 0.95)
+efter_time = time.time()
+print('ending run calculations. Total time: ', efter_time - attempt_time)
+
 #print('multi-dim prof', many_profs)
 #print('many_opt:',many_opt)
 #firm1, firm2 = end_prof(many_profs, many_profs2)
-delta_done1= delta_prof(delta_arr, delta_arr2)
-print(delta_done1[-10:])
-unique, counts = np.unique(change_yes, return_counts=True)
-print(np.asarray((unique, counts)).T)
+#delta_done1= delta_prof(delta_arr, delta_arr2)
+#print(delta_done1[-10:])
+#unique, counts = np.unique(change_yes, return_counts=True)
+#print(np.asarray((unique, counts)).T)
 
 
-#code to plot convergence of the runs 
-'''
-plt.plot(change_yes, '.', label = 'Convergence')
+#dividing delta into intervals
+def delta_div(delta_arr):
+    new_delt = np.zeros(5)
+    for i in range(len(delta_arr)):
+        if delta_arr[i] <=1 and delta_arr[i] > 0.9: 
+            new_delt[4]+=1
+        elif delta_arr[i] <=0.9 and delta_arr[i] > 0.8:
+            new_delt[3]+=1
+        elif delta_arr[i] <=0.8 and delta_arr[i] > 0.7:
+            new_delt[2]+=1
+        elif delta_arr[i] <= 0.7 and delta_arr[i] > 0.6:
+            new_delt[1]+=1
+        else:
+            new_delt[0] +=1
+    return new_delt
+        
+        
+        
 
-print()
+#plt.plot(change_yes, '.', label = 'Convergence')
+
 #plt.plot(delta_done1, '.', label = 'collective delta')
+#plt.show()
+#def addlabels(x,y):
+    for i in range(len(x)):
+        plt.text(i,y[i],y[i])
+
+#interval_delta = delta_div(delta_done1)
+#langs = ['[0.5 : 0.6]', ']0.6 : 0.7]', ']0.7 : 0.8]', ']0.8 : 0.9]', ']0.9 : 1]']
+
+#y_pos = np.arange(len(langs))
+
+#plt.title("Distribution of $\Delta$")
+# Create bars
+#plt.bar(y_pos, interval_delta)
+
+#addlabels(langs, interval_delta )
+# Create names on the x-axis
+#plt.xticks(y_pos, langs)
+#plt.xlabel("$\Delta$")
+#plt.ylabel("Frequency")
+#make label
+#label = [interval_delta]
+# Show graphic
+#plt.show()
+
+'''
+fig, ax = plt.subplots(figsize =(10, 7))
+
+plt.xlabel("Delta-values")
+plt.ylabel("Frequency")
+plt.title('Frequency of Delta-values')
+plt.hist(delta_done1,[0.5, 0.6, 0.7, 0.8, 0.9, 1])
 plt.show()
 '''
-
 #Heatmap very similar to Klein heatmap
 '''
 heatmap, xedges, yedges = np.histogram2d(firm1, firm2, bins=12)
@@ -426,10 +476,10 @@ meantime = time.time()
 
 #Calculating the mean of profitability arrays and optimality
 #Can unfortunately not be optimized, as the axis argument is not supported for numba
-def prof_means(prof_arr1, prof_arr2, opt_arr, ):
-    return np.mean(prof_arr1, axis=0), np.mean(prof_arr2, axis=0), np.mean(opt_arr, axis=0)
+def prof_means(prof_arr1, prof_arr2):
+    return np.mean(prof_arr1, axis=0), np.mean(prof_arr2, axis=0)
 
-samlet_prof, samlet_prof2, samlet_opt_arr = prof_means(many_profs, many_profs2, many_opt)
+samlet_prof, samlet_prof2 = prof_means(many_profs, many_profs2)
 
 meanendtime = time.time()
 print('ending mean. time: ', (meanendtime - meantime))
@@ -484,10 +534,11 @@ end_time = time.time()
 print('time:', end_time-start_time)
 
 t_arr1 = np.arange(0,498999)
-'''
+
 t_arr2 = np.arange(0,498999)
-plt.plot(t_arr1,profitability_arr,'-',label='Firm 1')
-plt.plot(t_arr2,profitability_arr2,'-', label='Firm 2')
+fig, ax = plt.subplots(figsize =(5.75, 2.6))
+plt.plot(t_arr1,profitability_arr,'-',label='Unrestricted Q-learner')
+plt.plot(t_arr2,profitability_arr2,'-', label='Sticky price')
 plt.axhline(y=0.125, color='k', linestyle = '--')
 plt.axhline(y=0.061, color='k', linestyle = '--')
 plt.xlabel("Time")
@@ -495,10 +546,13 @@ plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
-'''
+
+print('avg prof of unrestricted Q-learner',np.mean(profitability_arr[-1000]))
+print('avg profitabilty of sticky man', np.mean(profitability_arr2[-1000]))
+      
 
 combi_arr = np.mean((np.vstack((profitability_arr, profitability_arr2))), axis=0)
-
+fig, ax = plt.subplots(figsize =(5.75, 2.6))
 plt.plot(t_arr1,combi_arr,'-',label='Average profit')
 plt.axhline(y=0.125, color='k', linestyle = '--')
 plt.axhline(y=0.0611, color='k', linestyle = '--')
@@ -507,6 +561,8 @@ plt.ylabel("Profitability")
 plt.ylim(0.00,0.15)
 plt.legend()
 plt.show()
+
+print('avg profitabilty of both unrestricted and sticky', np.mean(combi_arr[-1000]))
 
 ###
 #Plotting 2 simultaneous plots
@@ -556,8 +612,39 @@ t_arr2 = np.arange(1,499999,2)
 print('pris1:', arr[-10:])
 print('priser2:', arr1[-10:])
 print(type(prof_arr))
-plt.plot(t_arr1,arr,'--o',label='Player 1', )
-plt.plot(t_arr2,arr1,'s--', label='Player 2')
+plt.plot(t_arr1,arr,'--o',label='Unrestricted Q-learner', )
+plt.plot(t_arr2,arr1,'s--', label='Tit for Tat')
+plt.ylabel("Price")
+plt.legend(loc='upper right')
+plt.show()
+
+prof_arr, arr, arr1, q_table, bla, bla2, bl3 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+
+print('  Q TABLE 2', q_table)
+print('profitability',prof_arr[-10:])
+t_arr1 = np.arange(0,499998,2)
+t_arr2 = np.arange(1,499999,2)
+print('pris1:', arr[-10:])
+print('priser2:', arr1[-10:])
+print(type(prof_arr))
+plt.plot(t_arr1,arr,'--o',label='Unrestricted Q-learner', )
+plt.plot(t_arr2,arr1,'s--', label='Tit for Tat')
+plt.xlabel("Time t")
+plt.ylabel("Price")
+plt.legend(loc='upper right')
+plt.show()
+
+prof_arr, arr, arr1, q_table, bla, bla2, bl3 = game(x, 500000, 0.3, 0.0000276306393827805, 0.95)
+
+print('  Q TABLE 2', q_table)
+print('profitability',prof_arr[-10:])
+t_arr1 = np.arange(0,499998,2)
+t_arr2 = np.arange(1,499999,2)
+print('pris1:', arr[-10:])
+print('priser2:', arr1[-10:])
+print(type(prof_arr))
+plt.plot(t_arr1,arr,'--o',label='Unrestricted Q-learner', )
+plt.plot(t_arr2,arr1,'s--', label='Tit for Tat')
 plt.xlabel("Time t")
 plt.ylabel("Price")
 plt.legend(loc='upper right')
